@@ -10,7 +10,7 @@
 #                   - Execute CreateTFSP.ps1 to create a Terraform Service Principal in the target subscription
 #                   - Execute TerraformKubectlSetup.ps1 to install terraform and kubectl on your Windows machine
 #                   - in the folder /hub-spoke-privateaks/1-backend-tflocal/ execute "tf init"
-#                   - fill in the *.auto.tfvars.json files with the variable values
+#                   - fill in the *.auto.tfvars.json files with the variables' values
 #                   - execute "tf plan"
 #                   - check the plan
 #                   - execute "tf apply" with the wanted settings
