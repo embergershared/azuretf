@@ -1,4 +1,4 @@
-#   Create Terraform Service Principal PowerSjhel script
+#   Create Terraform Service Principal PowerShell script
 #
 # 1. Login to Azure
 az login
