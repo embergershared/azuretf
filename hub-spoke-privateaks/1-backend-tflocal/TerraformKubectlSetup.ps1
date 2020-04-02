@@ -15,7 +15,6 @@ If(!(test-path $path))
 Move-Item -Path terraform_${tfv}_windows_amd64\terraform.exe -Destination $path -Force
 Remove-Item terraform_${tfv}_windows_amd64
 Remove-Item $output
-Set-Alias -Name tf -Value $path\terraform.exe
 
 # Download and install kubectl
 $uri="https://storage.googleapis.com/kubernetes-release/release/v${kubv}/bin/windows/amd64/kubectl.exe"
@@ -23,7 +22,6 @@ $output = "kubectl.exe"
 Import-Module BitsTransfer
 Start-BitsTransfer -Source $uri -Destination $output #-Asynchronous
 Move-Item -Path $output -Destination $path -Force
-Set-Alias -Name k -Value $path\kubectl.exe
 
 # Set Alias for powershell all users
 If(!(test-path $PsHome\profile.ps1)) {
