@@ -1,2 +1,2 @@
 # Azure Terraform examples repository
-Terraform resources, tests, examples for Azure
+Terraform resources, tests and examples for Azure deployments
