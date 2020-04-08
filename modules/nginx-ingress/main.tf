@@ -1,16 +1,17 @@
+#
 #   ===  Nginx Ingress Controller Deployment  ===
 #
 #   Ref: https://kubernetes.github.io/ingress-nginx/deploy/
 #
 resource kubernetes_namespace ingress_nginx {
-  metadata {
-    name = var.namespace
+    metadata {
+        name = var.namespace
 
-    labels = {
-      "app.kubernetes.io/name"    = var.namespace
-      "app.kubernetes.io/part-of" = var.namespace
+        labels = {
+            "app.kubernetes.io/name"    = var.namespace
+            "app.kubernetes.io/part-of" = var.namespace
+        }
     }
-  }
 }
 resource kubernetes_config_map nginx_configuration {
     metadata {
@@ -18,8 +19,8 @@ resource kubernetes_config_map nginx_configuration {
         namespace = kubernetes_namespace.ingress_nginx.metadata[0].name
 
         labels = {
-        "app.kubernetes.io/name"    = var.namespace
-        "app.kubernetes.io/part-of" = var.namespace
+            "app.kubernetes.io/name"    = var.namespace
+            "app.kubernetes.io/part-of" = var.namespace
         }
     }
 }
@@ -29,8 +30,8 @@ resource kubernetes_config_map tcp_services {
         namespace = kubernetes_namespace.ingress_nginx.metadata[0].name
 
         labels = {
-        "app.kubernetes.io/name"    = var.namespace
-        "app.kubernetes.io/part-of" = var.namespace
+            "app.kubernetes.io/name"    = var.namespace
+            "app.kubernetes.io/part-of" = var.namespace
         }
     }
 }
@@ -40,8 +41,8 @@ resource kubernetes_config_map udp_services {
         namespace = kubernetes_namespace.ingress_nginx.metadata[0].name
 
         labels = {
-        "app.kubernetes.io/name"    = var.namespace
-        "app.kubernetes.io/part-of" = var.namespace
+            "app.kubernetes.io/name"    = var.namespace
+            "app.kubernetes.io/part-of" = var.namespace
         }
     }
 }
@@ -51,8 +52,8 @@ resource kubernetes_service_account nginx_ingress_serviceaccount {
         namespace = kubernetes_namespace.ingress_nginx.metadata[0].name
 
         labels = {
-        "app.kubernetes.io/name"    = var.namespace
-        "app.kubernetes.io/part-of" = var.namespace
+            "app.kubernetes.io/name"    = var.namespace
+            "app.kubernetes.io/part-of" = var.namespace
         }
     }
 }
@@ -60,8 +61,8 @@ resource kubernetes_cluster_role nginx_ingress_clusterrole {
     metadata {
         name    = "nginx-ingress-clusterrole"
         labels  = {
-          "app.kubernetes.io/name"    = var.namespace
-          "app.kubernetes.io/part-of" = var.namespace
+            "app.kubernetes.io/name"    = var.namespace
+            "app.kubernetes.io/part-of" = var.namespace
         }
     }
     rule {
