@@ -17,7 +17,7 @@ The module requires:
 # Example Usage
 ```
 module nginx-ingress-controller {
-    source = "../modules/ingress-nginx"
+    source = "../modules/nginx-ingress"
 }
 ```
 
