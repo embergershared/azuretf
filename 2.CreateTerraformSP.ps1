@@ -5,14 +5,13 @@ az login
 # Choose the account to use in Azure in browser
 
 # Set the variables
-#$tenant_id="tenant"
 $subscription_id="sub"
-$subscription_nickname="sub"
-$TfSpSuffix1="Suff1"
-$TfSpSuffix2="Suff2"
-$kvVaultName="${subscription_nickname}-KeyVault"
+$subscription_nickname="subnickname"
+$TfSpSuffix1="suffix"
+$TfSpSuffix2="Terraform"
+$kvVaultName="keyvaultname"
 
-# Process the variables
+# Process variables
 $TfSpName = "${subscription_nickname}-${TfSpSuffix1}-${TfSpSuffix2}"
 $scriptName = $MyInvocation.MyCommand.Name
 
@@ -23,7 +22,6 @@ $actDate = $(Get-Date -Date $Time.AddMinutes(-1).ToUniversalTime() -Format "yyyy
 
 # Set the subscription
 az account set --subscription $subscription_id
-
 
 # Check if the SP already exists
 $existing_app_id=$(az ad sp list --display-name $TfSpName --query [].appId -o tsv)
@@ -54,14 +52,18 @@ az role assignment create --role $role --assignee $tf_app_id --subscription $sub
 # az login --service-principal -u $tf_app_id -p $tf_app_secret --tenant $tenant_id
 # az account set --subscription $subscription_id
 
+# Get the Tenant Id
+$tenant_id=$(az account show --query tenantId -o tsv)
+
 # Display results
 if ($appExists) {
     Write-Host "======     Terraform Service Principal refreshed  ======"
 } else {
     Write-Host "======     Terraform Service Principal created    ======"
 }
-Write-Host " SubscriptionId: $subscription_id"
 Write-Host "    DisplayName: $TfSpName"
+Write-Host "       TenantId: $tenant_id"
+Write-Host " SubscriptionId: $subscription_id"
 Write-Host "          AppId: $tf_app_id"
 Write-Host "      AppSecret: $tf_app_secret"
 
