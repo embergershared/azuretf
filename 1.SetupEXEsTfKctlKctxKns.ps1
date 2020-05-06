@@ -1,6 +1,6 @@
 $path = "C:\k8s"
 $tfv="0.12.24"
-$kubv="1.18.0"
+$kubv="1.18.2"
 # $krewv="0.3.4"
 
 # Ensure Directory exists
