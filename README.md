@@ -13,7 +13,8 @@ Using IaC based on Terraform for almost 2 years now, I met 4 challenges I try to
     - **A Landing zone (Hub)**:    
     Networking, Policies, Egress & Ingress Firewall, Application Gateway, Key Vault, VPN, Jumpboxes, etc.
     - **Multiple Workloads (Spokes)**:    
-    Virtual Machines, Storage, AI models, Databases, Functions, Containers instances, etc. The main idea is to separate them as plug-in/plug-out pieces,
+    Virtual Machines, Storage, AI models, Databases, Functions, Containers instances, etc.    
+    The main idea is to separate them as plug-in/plug-out pieces.
 
 With time, these challenges were growing, using Jenkins, Azure DevOps, bash and PowerShell scripts, Terraform local, Cloud and Enterprise, and I came to the following solution:
 
