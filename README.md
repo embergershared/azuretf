@@ -93,11 +93,13 @@ To apply changes, type ```yes``` and hit enter.
   2. Note the following data: TenantId, SubscriptionId, AppId, AppSecret,
   3. Give this Service Principal the appropriate permissions (usually Contributor on a Subscription),
   4. Fill-in TenantId, SubscriptionId, AppId values in the file ```\subscriptions\demo\demo_tfspn.json```
-  5. Modify the other values to your context,
+  5. Modify the other values in ```demo_tfspn.json``` to your context,
   6. Fill-in AppSecret value in the file ```\subscriptions\demo\demo_tfspn_secret.json```
   7. Check that the file ```demo_tfspn_secret.json``` will not be checked-in your repo,
-  8. Follow the steps for the first plan:    
-      The first plan ```\tf-plans\1-hub\1-terraform``` creates the resource group, storage account and container to store all the following Terraform states files:
+  8. Save the changes,
+  9. Follow the steps for the first plan:    
+      The first plan ```\tf-plans\1-hub\1-terraform``` creates the resource group, storage account and container to store all the following Terraform states.    
+      To set it up:
       * Execute the plan:    
       ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\```,
       * It will create the Resources,
