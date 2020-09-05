@@ -73,7 +73,7 @@ Finished "tfplan.ps1" script
 ```
 
 ## Parameters
-| Parameter | Description | Mandatory | Examlpe |
+| Parameter | Description | Mandatory | Example |
 |-----------|-------------|-----------|---------|
 | ```-MainTfPath``` | Used to give the argument of the Terraform Plan path | Yes | ```-MainTfPath .\1-hub\3-sharedsvc\``` |
 | ```-ValuesTfPath``` | Used to give the argument of the Terraform Values path | Yes | ```-ValuesTfPath ..\subscriptions\demo\1-hub\3-sharedsvc\``` |
