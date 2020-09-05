@@ -122,7 +122,7 @@ To apply changes, type ```yes``` and hit enter.
   * Have only 1 Variables declaration and reference it accross multiple Plans,
   * Avoid ```locals {  }``` repetitive declaration in all Values folders,
   * Synchronize some tags and tokens values automatically,    
-  But the scripted approach allows to develop and debug very easily and quickly, as it stays local and all Terraform commands can be run directly, and their outputs interpreted, which is way slower and less convenient to do in a pipeline.
+  But the scripted approach allows to develop and debug very easily and quickly, as all pieces stay local and all Terraform CLI commands can be run directly, their outputs interpreted. It is way slower and unconvenient to develop in a pipeline.
 
 ## Conventions
 * The JSON file with the values for a set of variables must have the same name pattern:
