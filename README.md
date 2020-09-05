@@ -1,22 +1,25 @@
 # Azure with Terraform
-This repository is aimed at sharing the code created in various contexts to deploy Azure resources and infrastructures, using (HashiCorp) Terraform.
+This repository shares the code created from various contexts to deploy [Azure](https://azure.microsoft.com/) resources and infrastructures using (HashiCorp) [Terraform](https://www.terraform.io/).
 
-It is provided as is, with no support or warranty, but this code is used in real scenarios for real customers/workloads.
+It is provided as is, with no support or warranty, but this code is used in real scenarios for real customers/workloads, within their contexts.
 
 # Infrastructure as Code
 ## Challenges
-Using IaC based on Terraform for almost 2 years now, I met 4 challenges I try to address here to help:
+Using IaC (Infrastructure as Code) based on Terraform for more than 2 years, I met 4 challenges I try to address here and share:
 1. **Start locally, but be ready for Pipelines** deployment later, as easily as possible,
-2. **Separate completely the Infrastructure Plans from their Instances Values** (including defaults, and instances' Terraform backend state storage),
-3. **Set a Variable value once** for all the instances that need it and never duplicate it,
-4. Acknowledge all **deployments happen in layers/steps**:
+2. **Separate completely the Infrastructure Plans from their Instances' Values** (including defaults, and instances' Terraform backend state persistence),
+3. **Set a Variable's value once** for all the instances that needs it (never duplicate, never copy/paste values, never store the same value in mutiple places),
+4. Acknowledge and code accordingly that **deployments happen in layers/steps**:
     - **A Landing zone (Hub)**:    
     Networking, Policies, Egress & Ingress Firewall, Application Gateway, Key Vault, VPN, Jumpboxes, etc.
-    - **Multiple Workloads (Spokes)**:    
-    Virtual Machines, Storage, AI models, Databases, Functions, Containers instances, etc.    
-    The main idea is to deploy/remove them as plug-in/plug-out pieces.
+    - **Multiple Workloads groups (Spokes)**:    
+    Virtual Machines, Storage, AI models, Databases, Functions, Containers instances, etc.
+    - **Deployed in sequenced layers**:    
+      Deploy Networking > Data > Compute > Application.     
+      Remove in the reverse order (Application > Compute > etc.).
 
-With time, these challenges were growing, using Jenkins, Azure DevOps, bash and PowerShell scripts, Terraform local, Cloud and Enterprise, and I came to the following solution:
+With time, these challenges grew, whatever tools used (Jenkins, Azure DevOps, bash and PowerShell scripts, Terraform local, Terrafrom Cloud and Enterprise).    
+I came to the above solution as a solid foundation.
 
 ## Offered solution
 To solve these challenges, I created a PowerShell script, and a structured organization of all the pieces.    
