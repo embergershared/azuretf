@@ -85,7 +85,9 @@ Finished "tfplan.ps1" script
 Note: Except for the ```-b``` argument, all other arguments will clean the Values folder and Environment variables created.
 
 ## Comments
-* By default, the script launches a ```terraform apply```. It saves time from the sequence ```terraform plan``` then ```terraform apply```, and maintain execution consistency. To discard changes, just hit enter at prompt. To apply changes, type ```yes``` and hit enter.
+* By default, the script launches a ```terraform apply```. It saves time from the sequence ```terraform plan``` then ```terraform apply```, and maintain execution consistency.    
+To discard changes, just hit enter at prompt.    
+To apply changes, type ```yes``` and hit enter.    
 * To get started with the provided plans:
   1. Create an Azure Service Principal (Portal, azure CLI, azure PowerShell, etc.),
   2. Note the following data: TenantId, SubscriptionId, AppId, AppSecret,
