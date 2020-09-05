@@ -94,9 +94,9 @@ To get started with the provided plans:
 6. Fill-in *AppSecret* value in the file ```\subscriptions\demo\demo_tfspn_secret.json```
 7. Check that the file ```demo_tfspn_secret.json``` will not be checked-in your repo,
 8. Save the changes,
-9. Follow the steps for the first plan:    
-    The first plan ```\tf-plans\1-hub\1-terraform``` creates the resource group, storage account and container to store all the following Terraform states.    
-    To set it up:
+9. Follow the **steps for the first plan**:    
+* The first plan ```\tf-plans\1-hub\1-terraform``` creates the resource group, storage account and container to store all the following Terraform states.    
+* To set it up:
     1. Execute the plan:    
     ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\```,
     2. It will create the Resources,
@@ -106,7 +106,7 @@ To get started with the provided plans:
     6. Execute the plan a second time, with the ```-i``` argument:    
     ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\ -i```,
     7. Answer ```yes``` to move from local to remote backend,
-    * You're started.
+* You're started.
 
 
 ## Comments
