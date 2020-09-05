@@ -49,8 +49,9 @@ Additionnally, the Terraform backend settings have to be hard-coded, they cannot
 # Usage
 ## General
 The general use is simple:
-* on a Windows machine with PowerShell,
-* Go in the folder that has the script file ```tfplan.ps1``` (in the repo: ```/tf-plans```)
+* on a Windows machine with PowerShell and Terraform (>= 0.12),
+* Launch PowerShell,
+* Go (```cd``` or ```Set-Location```) in the folder where the script file ```tfplan.ps1``` is (in the repo: ```/tf-plans```)
 
 Execute the script with the Plan and Values folders as parameters:    
 ```.\tfplan.ps1 -MainTfPath .\1-hub\3-sharedsvc\ -ValuesTfPath ..\subscriptions\demo\1-hub\3-sharedsvc\```
@@ -105,7 +106,7 @@ To get started with the provided plans:
     5. Save the changes,
     6. Execute the plan a second time, with the ```-i``` argument:    
     ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\ -i```,
-    7. Answer ```yes``` to move from local to the Azure remote backend,
+    7. Answer ```yes``` to move the state from local to the Azure remote backend,
 * You're started.
 
 
