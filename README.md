@@ -84,8 +84,30 @@ Finished "tfplan.ps1" script
 
 Note: Except for the ```-b``` argument, all other arguments will clean the Values folder and Environment variables created.
 
-## Conventions
+## Comments
 * By default, the script launches a ```terraform apply```. It saves time from the sequence ```terraform plan``` then ```terraform apply```, and maintain execution consistency. To discard changes, just hit enter at prompt. To apply changes, type ```yes``` and hit enter.
+* To get started with the provided plans:
+    1. Create an Azure Service Principal (Portal, azure CLI, azure PowerShell, etc.)
+    2. Note the following data: TenantId, SubscriptionId, AppId, AppSecret,
+    3. Give this Service Principal the appropriate permissions (usually Contributor on a Subscription),
+    4. Fill-in TenantId, SubscriptionId, AppId values in the file ```\subscriptions\demo\demo_tfspn.json```
+    5. Modify the other values to your context,
+    6. Fill-in AppSecret value in the file ```\subscriptions\demo\demo_tfspn_secret.json```
+    7. Check that the file ```demo_tfspn_secret.json``` will not be checked-in your repo,
+    8. Follow the steps for the first plan:    
+      The first plan ```\tf-plans\1-hub\1-terraform``` creates the resource group, storage account and container to store all the following Terraform states files:
+      * Execute the plan:    
+      ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\```,
+      * It will create the Resources,
+      * Once done, Uncomment (remove the starting ```# ```) the lines 4 to 12 in the file ```\subscriptions\demo\1-hub\1-terraform\state_hub-terraform.tf```,
+      * Fill in the values for subscription_id, resource_group_name and storage_account_name in the file ```state_hub-terraform.tf```,
+      * Save the changes,
+      * Execute the plan a second time, with the ```-i``` argument:    
+      ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\ -i```,
+      * Answer ```yes``` to move from local to remote backend,
+      * You're started.
+
+## Conventions
 * The JSON file with the values for a set of variables must have the same name pattern:
     * the values for ```variables_tfspn.tf``` must be in a JSON file named by this pattern: ```*tfspn*.json```,
     * the values can be split in multiples files, like ```tfspn.json``` and ```tfspn_secret.json``` to prevent secrets commit in the repo,

@@ -65,7 +65,7 @@ locals {
     "TfValues", "${local.tf_values}/",
     "TfState", "${local.tf_state}",
     "BuiltOn","${local.nowUTC}",
-    "InitiatedBy", "EB",
+    "InitiatedBy", "User",
   )}"
 
   # Location short for Main location
