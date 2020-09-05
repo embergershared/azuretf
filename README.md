@@ -64,7 +64,7 @@ Copied 3 "srcd-" files in Values Path.
 Sourcing Variables values from Terraform Variables files names (variables_).
 Processed 3 JSON files and 12 variables.
 Executing Terraform...
-    >>> Terraform messaged and processing <<<
+        >>> Terraform messages and processing <<<
 Press Enter to finish script...
 Finished Terraform.
 Removed 7 "Env:TF_VAR_*" Environment variables.
@@ -82,14 +82,15 @@ Finished "tfplan.ps1" script
 * The JSON file with the values for a set of variables must have the same name pattern:
     * the values for ```variables_tfspn.tf``` must be in a JSON file named by this pattern: ```*tfspn*.json```,
     * the values can be split in multiples files, like ```tfspn.json``` and ```tfspn_secret.json``` to prevent secrets commit in the repo,
-* The script looks for file matching the variables going up in the folder structure:
-    * It starts in the Value folder given as argument,
-      * if no JSON files match the pattern,
-      * It goes up one folder, then search again,
+* The script looks for file matching the variables going up in the Values' folder structure:
+    * It starts in the Value folder given as script argument,
+      * If no JSON files match the pattern,
+      * It goes up one folder, then search again until a matching JSON file is found,
       * Once found at 1 level, it stops here,
-    * once all the variables required values are found, the values are processing in reverse: It ensures that the value set the closest to the Values folder will be the one applied.
-    * It is usefull to override some defaults values specifically for in 1 instance.
-
+    * Once all the JSON files for the required variables have been found, the values are processed in reverse order of their discovery: It ensures that the values set the closest to the instance will be the ones applied.
+    * It is allows to override some defaults values specifically for in 1 instance deployment.
+* To ensure the processing of the default values, an empty variables Terraform file is created in the Plans folder. It ensures the default Values JSON file will be processed.    
+An example can be found with this file: ```\tf-plans\3-aks\2-cluster\variables_aks-defaults.tf``` it is empty, but it allows this values file to be processed: ```\subscriptions\demo\3-aks\demo_aks-defaults.json```
 
 # Q&A
 Why JSON for the values and not Terraform ```(auto.)tfvars.tf```?
