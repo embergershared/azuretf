@@ -73,7 +73,10 @@ Finished "tfplan.ps1" script
 ```
 
 ## Parameters
-
+| Parameter | Description | Mandatory | Examlpe |
+|-----------|-------------|-----------|---------|
+| ```-MainTfPath``` | Used to give the argument of the Terraform Plan path | Yes | -MainTfPath .\1-hub\3-sharedsvc\ |
+| ```-ValuesTfPath``` | Used to give the argument of the Terraform Values path | Yes | -ValuesTfPath ..\subscriptions\demo\1-hub\3-sharedsvc\ |
 
 ## Examples
 
@@ -107,4 +110,4 @@ Why use the Environment Variables and not a file?
 
 Why use 1 ```main_*.tf``` and multiple ```variables_*.tf``` files?
 > The multiple variables files allows to see right away which variables are needed for this plan. It eases the use of Variable Groups in Azure DevOps.    
-> The use of 1 main Terraform files (instead of splitted ones for the Plan), allows IntelliSense in the IDE to reference resources more easily in the plan.
+> The use of 1 main Terraform files (instead of splitted ones for the Plan), allows IntelliSense in the IDE to reference and debug more easily resources while building the plan.
