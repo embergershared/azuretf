@@ -118,7 +118,7 @@ To get started with the provided plans:
 To discard changes, just hit enter at prompt.    
 To apply changes, type ```yes``` and hit enter.    
 * The Plans provided leverage the [Azure Cloud Adoption Framework](https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/), like the [Naming and Tagging](https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/naming-and-tagging) and the [Hub & Spoke architecture](https://docs.microsoft.com/en-us/azure/architecture/reference-architectures/hybrid-networking/hub-spoke). These may not fit your deployments and conventions. Please, adapt to your need.
-* The script approach presents limitations and Pipelines are best suited to:
+* The script approach presents limitations that Pipelines are best suited for:
   * Have only 1 Variables declaration and reference it accross multiple Plans,
   * Avoid ```locals {  }``` repetitive declaration in all Values folders,
   * Synchronize some tags and tokens values automatically,    
