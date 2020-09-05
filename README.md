@@ -115,3 +115,6 @@ Why use the Environment Variables and not a file?
 Why use 1 ```main_*.tf``` and multiple ```variables_*.tf``` files?
 > The multiple variables files allows to see right away which variables are needed for this plan. It eases the use of Variable Groups in Azure DevOps.    
 > The use of 1 main Terraform files (instead of splitted ones for the Plan), allows IntelliSense in the IDE to reference and debug more easily resources while building the plan.
+
+What are the ```tf-plans```, ```modules``` and ```subscriptions``` folders for?
+> They are real life sanitized examples of an Azure infrastructure deployed with Terraform. Follow the execution in the folders following the numbers sequence and filling in the values appropriate for your deployment. **Note**: All elements are not provided, so some specifics in the deployments may not work and will need your adjustment.

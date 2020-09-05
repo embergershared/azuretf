@@ -1,0 +1,5 @@
+{
+  "enable_kdash":         "false",
+  "aks_cluster_admins_AADIds": "{ \"email@hotmail.com\" = \"GUID\", }",
+  "ssh_pubkey_path":      "J:\\aks_ssh_publickey.pem"
+}

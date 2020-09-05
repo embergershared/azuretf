@@ -1,0 +1,10 @@
+{
+  "hub_vms_base_name":  "Hub-Jumpboxes",
+  "win_vm_size":        "Standard_B2s",
+  "win_admin_user":     "",
+  "win_admin_pwd":      "",
+  "win_vm_offer":       "WindowsServer",
+  "win_vm_publisher":   "MicrosoftWindowsServer",
+  "win_vm_sku":         "2019-Datacenter",
+  "win_vm_version":     "latest"
+}

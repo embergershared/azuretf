@@ -1,0 +1,8 @@
+{
+  "cluster_name":           "Cluster1",
+  "cluster_location":       "canadacentral",
+  "aks_vnet_cidr":          "ABCD/20",
+  "ilb_vnet_cidr":          "EFGH/24",
+  "k8s_version":            "1.17.7",
+  "rotate_aks_secret":      "false"
+}

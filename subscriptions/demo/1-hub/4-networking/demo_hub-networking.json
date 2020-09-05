@@ -1,0 +1,8 @@
+{
+  "hub_vnet_base_name":         "Hub-Networking",
+  "hub_vnet_prefix":            "ABCD/24",
+  "vpn_clients_address_space":  "EFGH/24",
+  "p2srootcert_file_path":      "D:\\RootCertPublicKey.pem",
+  "hub_vnet_deploy_azfw":       "false",
+  "hub_vnet_deploy_vnetgw":     "true"
+}
