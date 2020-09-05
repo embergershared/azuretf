@@ -9,7 +9,7 @@ Using IaC (Infrastructure as Code) based on Terraform for more than 2 years, I m
 1. **Start locally, but be ready for Pipelines** deployment later, as easily as possible,
 2. **Separate completely the Infrastructure Plans from their Instances' Values** (including defaults, and instances' Terraform backend state persistence),
 3. **Set a Variable's value once** for all the instances that needs it (never duplicate, never copy/paste values, never store the same value in mutiple places),
-4. Acknowledge and code accordingly that **deployments happen in layers/steps**:
+4. Acknowledge and code accordingly that **deployments happen in steps & layers**:
     - **A Landing zone (Hub)**:    
     Networking, Policies, Egress & Ingress Firewall, Application Gateway, Key Vault, VPN, Jumpboxes, etc.
     - **Multiple Workloads groups (Spokes)**:    
@@ -18,36 +18,36 @@ Using IaC (Infrastructure as Code) based on Terraform for more than 2 years, I m
       Deploy Networking > Data > Compute > Application.     
       Remove in the reverse order (Application > Compute > etc.).
 
-With time, these challenges grew, whatever tools used (Jenkins, Azure DevOps, bash and PowerShell scripts, Terraform local, Terrafrom Cloud and Enterprise).    
-I came to the above solution as a solid foundation.
+With time, these challenges grew, whatever tools used (Jenkins, Azure DevOps, bash and PowerShell scripts, Terraform local, Terraform Cloud, Terraform Enterprise).    
+I came to the above solution as a solid foundation for all cases.
 
 ## Offered solution
 To solve these challenges, I created a PowerShell script, and a structured organization of all the pieces.    
 The script does these main things:
-* Merges all the Terraform files ```*.tf``` in one folder,
-* Searches for the values in ```*.json``` files,
-* Creates the Environment variables for the Variable/Value pairs for this execution,
-* Runs the Terraform command (default is "Apply") in the folder,
+* Merges all the Terraform Plan files ```*.tf``` in the instance Value folder,
+* Searches for the Plan required Variables' values in ```*.json``` files, located in the Value folder(s),
+* Creates Environment variables on the host for the Variable/Value pairs required,
+* Runs the Terraform command (default is "Apply") in the Value folder,
 * Cleans everything after execution.
 
 ## Benefits
-This solution addresses the challenges in these ways:
+This solution addresses the challenges described in these ways:
 * The Plans do not have any data or values in them:    
 They are managed independently from the instances that are deployed from them.    
 They mainly consist of:
-    * The ```main.tf``` file that describes the resources and modules to deploy the infrastructure,
+    * The ```main_*.tf``` file that describes the resources and modules to deploy the infrastructure,
     * 1/n ```variables_*.tf``` files that declares the variables needed for the ```main.tf``` file execution.    
     Separating in multiple files the variables declaration:
       * Prepares for Variables' Groups in Pipelines,
       * Indicates the JSON values files required to execute this plan,
-      * Unfortunately, requires some copy/paste (that could be improved with a manifest).
+      * Unfortunately, it requires copy/pasting the declarations in the Plans needing to use these variables (that can be improved with a manifest).
 * Creating multiple instances of a same Plan is REALLY easy, possible and manageable:    
-    * Run the script pointing on the same Plan and on a different Values folder.    
+    * Run the script on the same Plan and on a different Values folder.    
     * Things that are common will be the same and differences will be different.
-* When a Variable Value is set in its JSON file, the script will find it and use it anytime needed for the plans that use it (by their inclusion of the respective ```variables_.tf```).
-* To transfer these plans in a Pipeline, put the Plans in the repository and choose the best method for the variables values (Variables Groups, Terraform Cloud/Enterprise UI, Terraform API calls, in memory sourcing within the agent with ```TF_VAR_```, generate ```auto.tfvars.tf``` files as artifacts). What matters is that the exact list of variables and values to provide for a plan is declared in the plan's folder.
-* The Terraform backend settings to store the state of the infrastructure instance are set in a ```state_*,tf``` file located in the Values folder. This is because each state is unique for each instance. The script merging all the required ```*.tf``` files in the Values folder before execution, creates the consistency of the full plan.    
-Additionnally, the Terraform backend settings have to be hard-coded, they cannot reference variables. So, managing them as Values makes a lot of sense.
+* When a Variable Value is set in its JSON file, the script will find it and use it anywhere needed for the plans that use it (by the inclusion of the respective ```variables_.tf``` declaration files in the Plan folder).
+* To transfer these plans in a Pipeline, put the Plans in the repository and choose the best method for your context to provide the variables' values (Variables Groups, Terraform Cloud/Enterprise UI, Terraform API calls, in memory sourcing within the agent with ```TF_VAR_```, generate ```auto.tfvars.tf``` files as artifacts). What matters is that the exact list of variables and values to provide for a plan is declared in the plan's folder.
+* The Terraform backend settings to store the state of the infrastructure instance are set in a ```state_*,tf``` file located in the Values folder. This is because each state is unique to its instance. The script merging all the required ```*.tf``` files in the Values folder before execution, creates the consistency of the full instance.    
+Additionnally, the Terraform backend settings have to be hard-coded, they cannot reference variables. So, managing them as Values makes a lot of sense. In a Pipeline, these are usually filled by a "token replacement" task. 
 
 # Usage
 ## General
