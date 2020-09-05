@@ -110,10 +110,7 @@ To apply changes, type ```yes``` and hit enter.
       ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\ -i```,
       * Answer ```yes``` to move from local to remote backend,
       * You're started.
-* The Plans provideds leverage the [Azure Cloud Adoption Framework](https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/), like the [Naming and Tagging][2] or [Hub & Spoke architecture][3]. These may not fit your deployment and conventions. Adapt to your liking.
-[1]:https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/
-[2]:https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/naming-and-tagging
-[3]:https://docs.microsoft.com/en-us/azure/architecture/reference-architectures/hybrid-networking/hub-spoke
+* The Plans provideds leverage the [Azure Cloud Adoption Framework](https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/), like the [Naming and Tagging](https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/naming-and-tagging) or [Hub & Spoke architecture](https://docs.microsoft.com/en-us/azure/architecture/reference-architectures/hybrid-networking/hub-spoke). These may not fit your deployment and conventions. Adapt to your need.
 
 ## Conventions
 * The JSON file with the values for a set of variables must have the same name pattern:
