@@ -77,7 +77,7 @@ Finished "tfplan.ps1" script
 |-----------|-------------|-----------|
 | ```-MainTfPath``` | Used to give the argument of the Terraform Plan path | Yes |
 | ```-ValuesTfPath``` | Used to give the argument of the Terraform Values path | Yes |
-| ```-b``` | Generates the full build in the Values folder. The script stops and it is possible to execute Terraform commands directly, like ```terraform state list```. Once done, execute ```Pop-Location``` to return to the script path. **Note**: the environment and copied files are not cleaned | No |
+| ```-b``` | Generates the full build in the Values folder. The script stops and it is possible to execute Terraform commands directly, like ```terraform state list```. Once done, execute ```Pop-Location``` to return to the script path.    **Note**: the environment and copied files are not cleaned | No |
 | ```-i``` | Executes a ```terraform init```    on the Plan + Values build. | No |
 | ```-d``` | Executes a ```terraform destroy``` on the Plan + Values build. | No |
 | ```-p``` | Executes a ```terraform plan```    on the Plan + Values build. | No |
