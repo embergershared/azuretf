@@ -42,13 +42,36 @@ They mainly consist of:
     * Run the script pointing on the same Plan and a different Values folder.    
     * Things that are common will be the same and differences will be different.
 * When a Variable Value is set in its JSON file, the script will find it and use it anytime needed for the plans that use it (by their inclusion of the respective ```variables_.tf```).
-* To transfer these plans in a Pipeline, put the Plans in the repository and choose the best method for the values (Variables Groups, Terraform UI or API calls, in memoery sourcing in the agent with ```TF_VAR_```, generate ```auto.tfvars.tf``` files).
-
-
+* To transfer these plans in a Pipeline, put the Plans in the repository and choose the best method for the variables values (Variables Groups, Terraform Cloud/Enterprise UI, Terraform API calls, in memory sourcing within the agent with ```TF_VAR_```, generate ```auto.tfvars.tf``` files as artifacts). What matters is that the exact list of variables and values to provide for a plan is declared in the plan's folder.
+* The Terraform backend settings to store the state of the infrastructure instance are set in a ```state_*,tf``` file located in the Values folder. This is because each state is unique for each instance. The script merging all the required ```*.tf``` files in the Values folder before execution, creates the consistency of the full plan.    
+Additionnally, the Terraform backend settings have to be hard-coded, they cannot reference variables. So, managing them as Values makes a lot of sense.
 
 # Usage
 ## General
+The general use is simple:
+* on a Windows Machine with PowerShell,
+* Go in the folder that has the script file ```tfplan.ps1``` (in the repo: ```/tf-plans```)
 
+Execute the script with the Plan and the Values folders as parameters:
+```.\tfplan.ps1 -MainTfPath .\1-hub\3-sharedsvc\ -ValuesTfPath ..\subscriptions\demo\1-hub\3-sharedsvc\```
+
+A typical output will look like this:
+```
+Starting "tfplan.ps1" with parameters: Command="Execute", Main=".\1-hub\3-sharedsvc\", Values="..\subscriptions\demo\1-hub\3-sharedsvc\"
+Plan   path is: D:\GitHub\azuretf\tf-plans\1-hub\3-sharedsvc\
+Values path is: D:\GitHub\azuretf\subscriptions\demo\1-hub\3-sharedsvc\
+Copied 3 "srcd-" files in Values Path.
+Sourcing Variables values from Terraform Variables files names (variables_).
+Processed 3 JSON files and 12 variables.
+Executing Terraform...
+
+
+Press Enter to finish script...
+Finished Terraform.
+Removed 7 "Env:TF_VAR_*" Environment variables.
+Deleted 3 "srcd-" files from Values Path.
+Finished "tfplan.ps1" script
+```
 
 ## Parameters
 
@@ -56,15 +79,28 @@ They mainly consist of:
 ## Examples
 
 
+## Conventions
+* The JSON file with the values for a set of variables must have the same name pattern:
+    * the values for ```variables_tfspn.tf``` must be in a JSON file named by this pattern: ```*tfspn*.json```,
+    * the values can be split in multiples files, like ```tfspn.json``` and ```tfspn_secret.json``` to prevent secrets commit in the repo,
+* The script looks for file matching the variables going up in the folder structure:
+    * It starts in the Value folder given as argument,
+      * if no JSON files match the pattern,
+      * It goes up one folder, then search again,
+      * Once found at 1 level, it stops here,
+    * once all the variables required values are found, the values are processing in reverse: It ensures that the value set the closest to the Values folder will be the one applied.
+    * It is usefull to override some defaults values specifically for in 1 instance.
+
+
 # Q&A
 Why JSON for the values and not Terraform ```(auto.)tfvars.tf```?
 > JSON is system independent and can easily be manipulated by PowerShell, bash (or other shells) and CD Pipelines. Using JSON helps to be ready for Pipelines transition.    
 
 Why set defaults values in JSON and not in the Terraform ```variables*.tf``` files?
-> When set in a Terraform variable declaration (```variable name { default = "default value" } ```), the default value is a value put in the Plan. It defeats the approach of completely separating Plans from Values. It makes the default values management difficult, especially when these values are different, for example between a types of environments.
+> When declaring a variable in Terraform (```variable name { default = "default value" } ```), a default value can be set. But this declaration is part of the Plan, it is witihn the Plan. It defeats the approach of completely separating Plans from Values. It also makes the default values management difficult, especially when the (default) values are different, for example from an environment type to another.
 
-Why source control the JSON files (except secrets)?    
-> A major problem we faced in a project using Terraform Enterprise, was that the values are not versioned control in Terraform Enterprise. So, when a value is changed in the UI, there is no way to track it. Source controlling the JSON files allows to track values changes AND use branching for all changes (Plans and/or Values).    
+Why source control the Values' JSON files (except secrets)?    
+> A major problem we faced in a project using Terraform Enterprise was that the values are not versioned controlled in Terraform Enterprise. When a the value of a variable in a workspace is changed in the UI, there is no way to track it. Source controlling the JSON files allows to track values changes AND use branching for all changes (Plans and/or Values). In the mentioned project, we pushed through the Pipeline the variables values to be used by the workspace before all the Plans execution, through curl API calls.    
 
 Why use the Environment Variables and not a file?
 > Using ```TF_VAR_``` sourcing approach in Environment Variables of the host is more secured than a file with the values. It is mimicking the pipelines agents short-term lifecycle. If any bug or hang happens, no values data is persisted on a storage. Values are in memory, just for the time they are needed.
