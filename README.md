@@ -84,32 +84,35 @@ Finished "tfplan.ps1" script
 
 Note: Except for the ```-b``` argument, all other arguments will clean the Values folder and Environment variables created.
 
+## Get started
+To get started with the provided plans:
+1. Create an Azure Service Principal (Portal, azure CLI, azure PowerShell, etc.),
+2. Note the following data: *TenantId*, *SubscriptionId*, *AppId*, *AppSecret*,
+3. Give this Service Principal the appropriate permissions (usually Contributor on a ubscription),
+4. Fill-in *TenantId*, *SubscriptionId*, *AppId* values in the file ``\subscriptions\demo\demo_tfspn.json```
+5. Modify the other values in ```demo_tfspn.json``` to your context,
+6. Fill-in *AppSecret* value in the file ```\subscriptions\demo\demo_tfspn_secret.json```
+7. Check that the file ```demo_tfspn_secret.json``` will not be checked-in your repo,
+8. Save the changes,
+9. Follow the steps for the first plan:    
+    The first plan ```\tf-plans\1-hub\1-terraform``` creates the resource group, storage account and container to store all the following Terraform states.    
+    To set it up:
+    * Execute the plan:    
+    ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\```,
+    * It will create the Resources,
+    * Once done, uncomment the lines 4 to 12 in the file ```\subscriptions\demo\1-hub\1-terraform\state_hub-terraform.tf``` (remove the starting ```# ```),
+    * Fill in the values for *subscription_id*, *resource_group_name* and *storage_account_name* in the file ```state_hub-terraform.tf```,
+    * Save the changes,
+    * Execute the plan a second time, with the ```-i``` argument:    
+    ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\ -i```,
+    * Answer ```yes``` to move from local to remote backend,
+    * You're started.
+
+
 ## Comments
 * By default, the script launches a ```terraform apply```. It saves time from the sequence ```terraform plan``` then ```terraform apply```, and maintain execution consistency.    
 To discard changes, just hit enter at prompt.    
 To apply changes, type ```yes``` and hit enter.    
-* To get started with the provided plans:
-  1. Create an Azure Service Principal (Portal, azure CLI, azure PowerShell, etc.),
-  2. Note the following data: *TenantId*, *SubscriptionId*, *AppId*, *AppSecret*,
-  3. Give this Service Principal the appropriate permissions (usually Contributor on a Subscription),
-  4. Fill-in *TenantId*, *SubscriptionId*, *AppId* values in the file ```\subscriptions\demo\demo_tfspn.json```
-  5. Modify the other values in ```demo_tfspn.json``` to your context,
-  6. Fill-in *AppSecret* value in the file ```\subscriptions\demo\demo_tfspn_secret.json```
-  7. Check that the file ```demo_tfspn_secret.json``` will not be checked-in your repo,
-  8. Save the changes,
-  9. Follow the steps for the first plan:    
-      The first plan ```\tf-plans\1-hub\1-terraform``` creates the resource group, storage account and container to store all the following Terraform states.    
-      To set it up:
-      * Execute the plan:    
-      ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\```,
-      * It will create the Resources,
-      * Once done, uncomment the lines 4 to 12 in the file ```\subscriptions\demo\1-hub\1-terraform\state_hub-terraform.tf``` (remove the starting ```# ```),
-      * Fill in the values for *subscription_id*, *resource_group_name* and *storage_account_name* in the file ```state_hub-terraform.tf```,
-      * Save the changes,
-      * Execute the plan a second time, with the ```-i``` argument:    
-      ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\ -i```,
-      * Answer ```yes``` to move from local to remote backend,
-      * You're started.
 * The Plans provided leverage the [Azure Cloud Adoption Framework](https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/), like the [Naming and Tagging](https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/naming-and-tagging) and the [Hub & Spoke architecture](https://docs.microsoft.com/en-us/azure/architecture/reference-architectures/hybrid-networking/hub-spoke). These may not fit your deployments and conventions. Please, adapt to your need.
 
 ## Conventions
@@ -144,4 +147,4 @@ Why use 1 ```main_*.tf``` and multiple ```variables_*.tf``` files?
 > The use of 1 main Terraform files (instead of splitted main.tf for the Plan), allows IntelliSense in the IDE to reference and debug more easily resources while building the plan.
 
 What are the ```tf-plans```, ```modules``` and ```subscriptions``` folders for?
-> They are real life sanitized examples of an Azure infrastructure deployed with Terraform. Execute the folders following their number sequence and fill in the values adapted for your deployment. **Note**: All elements are not provided, so some specifics in the deployments may not work and will need your adjustment. **Good news**: Terraform will complain when it doesn't have all it needs to execute a Plan.
+> They are real life sanitized examples of an Azure infrastructure deployed with Terraform. Execute the folders following their number sequence and fill in the values adapted for your deployment. **Note**: All elements are not provided, so some specifics in the deployments may not work and will need your adjustment. **Good news**: Terraform will complain when it doesn't have everything it needs to execute a Plan.
