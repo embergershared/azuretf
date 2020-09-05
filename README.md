@@ -87,14 +87,14 @@ Note: Except for the ```-b``` argument, all other arguments will clean the Value
 ## Comments
 * By default, the script launches a ```terraform apply```. It saves time from the sequence ```terraform plan``` then ```terraform apply```, and maintain execution consistency. To discard changes, just hit enter at prompt. To apply changes, type ```yes``` and hit enter.
 * To get started with the provided plans:
-    1. Create an Azure Service Principal (Portal, azure CLI, azure PowerShell, etc.)
-    2. Note the following data: TenantId, SubscriptionId, AppId, AppSecret,
-    3. Give this Service Principal the appropriate permissions (usually Contributor on a Subscription),
-    4. Fill-in TenantId, SubscriptionId, AppId values in the file ```\subscriptions\demo\demo_tfspn.json```
-    5. Modify the other values to your context,
-    6. Fill-in AppSecret value in the file ```\subscriptions\demo\demo_tfspn_secret.json```
-    7. Check that the file ```demo_tfspn_secret.json``` will not be checked-in your repo,
-    8. Follow the steps for the first plan:    
+  1. Create an Azure Service Principal (Portal, azure CLI, azure PowerShell, etc.),
+  2. Note the following data: TenantId, SubscriptionId, AppId, AppSecret,
+  3. Give this Service Principal the appropriate permissions (usually Contributor on a Subscription),
+  4. Fill-in TenantId, SubscriptionId, AppId values in the file ```\subscriptions\demo\demo_tfspn.json```
+  5. Modify the other values to your context,
+  6. Fill-in AppSecret value in the file ```\subscriptions\demo\demo_tfspn_secret.json```
+  7. Check that the file ```demo_tfspn_secret.json``` will not be checked-in your repo,
+  8. Follow the steps for the first plan:    
       The first plan ```\tf-plans\1-hub\1-terraform``` creates the resource group, storage account and container to store all the following Terraform states files:
       * Execute the plan:    
       ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\```,
