@@ -7,3 +7,6 @@
 
 # .tfvars secret files
 *secret*.*tfvars*
+
+# .json secret files
+*secret*.json
