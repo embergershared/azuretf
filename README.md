@@ -131,17 +131,17 @@ Why JSON for the values and not Terraform ```(auto.)tfvars.tf```?
 > JSON is system independent and can easily be manipulated by PowerShell, bash (or other shells) and CD Pipelines. Using JSON helps to be ready for Pipelines transition.    
 
 Why set defaults values in JSON and not in the Terraform ```variables_*.tf``` files?
-> When declaring a variable in Terraform (```variable name { default = "default value" } ```), a default value can be set. But this declaration is part of the Plan, it is witihn the Plan. It defeats the approach of completely separating Plans from Values. It also makes the default values management difficult, especially when the (default) values are different, for example from an environment type to another.
+> When declaring a variable in Terraform (```variable name { default = "default value" } ```), a "default value" can be set. But this declaration is part of the Plan, it is within the Plan. It defeats the approach of completely separating Plans and Values. It also makes the default values management difficult, especially when the default values are different from an environment type to another.
 
 Why source control the Values' JSON files (except secrets)?    
-> A major problem we faced in a project using Terraform Enterprise was that the values are not versioned controlled in Terraform Enterprise. When a the value of a variable in a workspace is changed in the UI, there is no way to track it. Source controlling the JSON files allows to track values changes AND use branching for all changes (Plans and/or Values). In the mentioned project, we pushed through the Pipeline the variables values to be used by the workspace before all the Plans execution, through curl API calls.    
+> A major problem we faced in a project using Terraform Enterprise was that the values are not versioned controlled in Terraform Enterprise. When the value of a variable in a workspace is changed with the UI, there is no way to track it. Source controlling the JSON files allows to track values changes AND use branching for all changes (Plans and/or Values). In the mentioned project, we pushed through the Pipeline the variables values to be used by the workspace before all the Plans execution leveraging curl API calls to set the Terraform Enterprise workspace variables values from our repo (except secrets that were injected by Jenkins).    
 
 Why use the Environment Variables and not a file?
-> Using ```TF_VAR_``` sourcing approach in Environment Variables of the host is more secured than a file with the values. It is mimicking the pipelines agents short-term lifecycle. If any bug or hang happens, no values data is persisted on a storage. Values are in memory, just for the time they are needed.    
+> Using the ```TF_VAR_``` sourcing approach as Environment Variables on the host is more secure than a file with the values. It is mimicking the short lived pipelines agents. If any hang or crash happen, no values' data is persisted. Values are in memory, just for the time they are needed.    
 
 Why use 1 ```main_*.tf``` and multiple ```variables_*.tf``` files?
-> The multiple variables files allows to see right away which variables are needed for this plan. It eases the use of Variable Groups in Azure DevOps.    
-> The use of 1 main Terraform files (instead of splitted ones for the Plan), allows IntelliSense in the IDE to reference and debug more easily resources while building the plan.
+> The multiple variables files allows to see right away which variables are needed for a plan. It eases the use of Variable Groups in Azure DevOps.    
+> The use of 1 main Terraform files (instead of splitted main.tf for the Plan), allows IntelliSense in the IDE to reference and debug more easily resources while building the plan.
 
 What are the ```tf-plans```, ```modules``` and ```subscriptions``` folders for?
-> They are real life sanitized examples of an Azure infrastructure deployed with Terraform. Follow the execution in the folders following the numbers sequence and filling in the values appropriate for your deployment. **Note**: All elements are not provided, so some specifics in the deployments may not work and will need your adjustment.
+> They are real life sanitized examples of an Azure infrastructure deployed with Terraform. Execute the folders following their number sequence and fill in the values adapted for your deployment. **Note**: All elements are not provided, so some specifics in the deployments may not work and will need your adjustment. **Good news**: Terraform will complain when it doesn't have all it needs to execute a Plan.
