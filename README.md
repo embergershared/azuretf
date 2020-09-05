@@ -49,10 +49,10 @@ Additionnally, the Terraform backend settings have to be hard-coded, they cannot
 # Usage
 ## General
 The general use is simple:
-* on a Windows Machine with PowerShell,
+* on a Windows machine with PowerShell,
 * Go in the folder that has the script file ```tfplan.ps1``` (in the repo: ```/tf-plans```)
 
-Execute the script with the Plan and the Values folders as parameters:    
+Execute the script with the Plan and Values folders as parameters:    
 ```.\tfplan.ps1 -MainTfPath .\1-hub\3-sharedsvc\ -ValuesTfPath ..\subscriptions\demo\1-hub\3-sharedsvc\```
 
 A typical output will look like this:
@@ -77,17 +77,15 @@ Finished "tfplan.ps1" script
 |-----------|-------------|-----------|
 | ```-MainTfPath``` | Used to give the argument of the Terraform Plan path | Yes |
 | ```-ValuesTfPath``` | Used to give the argument of the Terraform Values path | Yes |
-| ```-b``` | Generates the full build in the Values folder. The script stops and it is possible to execute Terraform commands directly, like ```terraform state list```. Once done, execute ```Pop-Location``` to return to the script path.    **Note**: the environment and copied files are not cleaned | No |
+| ```-b``` | Generates the full build in the Values folder. The script stops and it is possible to execute Terraform commands manually, like ```terraform state list```. Once done, execute ```Pop-Location``` to return to the script path.    **Note**: the environment and copied files are not cleaned. | No |
 | ```-i``` | Executes a ```terraform init```    on the Plan + Values build. | No |
 | ```-d``` | Executes a ```terraform destroy``` on the Plan + Values build. | No |
 | ```-p``` | Executes a ```terraform plan```    on the Plan + Values build. | No |
 
-Note: Except ```-b``` argument, all other arguments will clean the Values folder and Environment variables created.
-
-## Examples
-
+Note: Except for the ```-b``` argument, all other arguments will clean the Values folder and Environment variables created.
 
 ## Conventions
+* By default, the script launches a ```terraform apply```. It saves time from the sequence ```terraform plan``` then ```terraform apply```, and maintain execution consistency. To discard changes, just hit enter at prompt. To apply changes, type ```yes``` and hit enter.
 * The JSON file with the values for a set of variables must have the same name pattern:
     * the values for ```variables_tfspn.tf``` must be in a JSON file named by this pattern: ```*tfspn*.json```,
     * the values can be split in multiples files, like ```tfspn.json``` and ```tfspn_secret.json``` to prevent secrets commit in the repo,
