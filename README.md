@@ -97,15 +97,15 @@ To get started with the provided plans:
 9. Follow the steps for the first plan:    
     The first plan ```\tf-plans\1-hub\1-terraform``` creates the resource group, storage account and container to store all the following Terraform states.    
     To set it up:
-    * Execute the plan:    
+    1. Execute the plan:    
     ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\```,
-    * It will create the Resources,
-    * Once done, uncomment the lines 4 to 12 in the file ```\subscriptions\demo\1-hub\1-terraform\state_hub-terraform.tf``` (remove the starting ```# ```),
-    * Fill in the values for *subscription_id*, *resource_group_name* and *storage_account_name* in the file ```state_hub-terraform.tf```,
-    * Save the changes,
-    * Execute the plan a second time, with the ```-i``` argument:    
+    2. It will create the Resources,
+    3. Once done, uncomment the lines 4 to 12 in the file ```\subscriptions\demo\1-hub\1-terraform\state_hub-terraform.tf``` (remove the starting ```# ```),
+    4. Fill in the values for *subscription_id*, *resource_group_name* and *storage_account_name* in the file ```state_hub-terraform.tf```,
+    5. Save the changes,
+    6. Execute the plan a second time, with the ```-i``` argument:    
     ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\ -i```,
-    * Answer ```yes``` to move from local to remote backend,
+    7. Answer ```yes``` to move from local to remote backend,
     * You're started.
 
 
