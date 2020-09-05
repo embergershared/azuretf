@@ -120,7 +120,7 @@ To apply changes, type ```yes``` and hit enter.
 * The Plans provided leverage the [Azure Cloud Adoption Framework](https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/), like the [Naming and Tagging](https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/naming-and-tagging) and the [Hub & Spoke architecture](https://docs.microsoft.com/en-us/azure/architecture/reference-architectures/hybrid-networking/hub-spoke). These may not fit your deployments and conventions. Please, adapt to your need.
 * The script approach presents limitations that Pipelines are best suited for:
   * Have only 1 Variables declaration and reference it accross multiple Plans,
-  * Avoid ```locals {  }``` repetitive declaration in all Values folders,
+  * Avoid ```locals {  }``` repetitive declaration in all the Values folders,
   * Synchronize some tags and tokens values automatically,    
   But the scripted approach allows to develop and debug very easily and quickly, as all pieces stay local and all Terraform CLI commands can be run directly, their outputs interpreted. It is way slower and unconvenient to develop in a pipeline.
 
