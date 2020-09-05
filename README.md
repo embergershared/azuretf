@@ -121,7 +121,7 @@ To apply changes, type ```yes``` and hit enter.
 * The script approach presents limitations and Pipelines are best suited to:
   * Have only 1 Variables declaration and reference it accross multiple Plans,
   * Avoid ```locals {  }``` repetitive declaration in all Values folders,
-  * Synchronize some tags and tokens values automatically,
+  * Synchronize some tags and tokens values automatically,    
 
 But the scripted approach allows to develop and debug very easily and quickly, as it stays local and all Terraform commands can be run directly, and their outputs interpreted, which is way slower and less convenient to do in a pipeline.
 
