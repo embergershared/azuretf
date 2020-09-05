@@ -17,7 +17,7 @@
 #        all other arguments or none will run a "Apply"
 #
 #   Notes:
-#   - If using "Build": "Pop-Location" brings you back to the Startedng dir,
+#   - If using "Build": "Pop-Location" brings you back to the launching folder,
 #   - Files from the Plan are copied with the prefix "srcd-",
 #   - "Press Enter to finish script" will:
 #     - Delete the Plan sourced files from the Values folder,
@@ -42,7 +42,7 @@ param ([string] $MainTfPath, [string] $ValuesTfPath)
 $DebugPreference = "SilentlyContinue" # "SilentlyContinue" | "Continue" = Debug
 
 # Script constants
-$tfexe = "tf"
+$tfexe = "terraform"
 $ValuesSubscRootPath = "..\subscriptions\"
 $PlansRootPath = "..\tf-plans"
 $SourcingPrefix = "srcd-"
