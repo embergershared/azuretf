@@ -10,7 +10,7 @@
 # Terraform     : 0.13.+
 # Providers     : azurerm 2.+
 # Plugins       : none
-# Modules       : /az-sp, /aks
+# Modules       : /azsp, /aks
 #
 # Created on    : 2020-07-15
 # Created by    : Emmanuel
@@ -151,21 +151,3 @@ module aks_cluster {
   authorized_ips             = var.authorized_ips
 }
 #**/
-
-/**
-#--------------------------------------------------------------
-#   AKS Specific Notes
-#--------------------------------------------------------------
-#   To get the Credentials:
-#az aks get-credentials -g rg-cac-msdn-aks-annecy -n aks-cac-msdn-annecy --admin --overwrite-existing --file kubeconfig
-#
-#   To launch the K8S Dashboard:
-#az aks browse -g rg-cac-msdn-aks-annecy -n aks-cac-msdn-annecy
-#
-#   To SSH in a node:
-#   - Change permissions on Private Key as per: https://superuser.com/questions/1296024/windows-ssh-permissions-for-private-key-are-too-open
-#     => Security / Advanced / Disable inheritance / ad\eb Owner
-#   - Connect to VPN
-#   - As Admin, add route to AKS Vnet: route add 10.60.0.0 mask 255.255.240.0 192.168.15.5 metric 10
-#   - ssh -i "D:\Dropbox\2.InfraHarvard\SshKeys\aks_ssh_privatekey.pem" linxadm@10.60.0.4
-**/
