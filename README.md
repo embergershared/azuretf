@@ -52,20 +52,19 @@ The general use is simple:
 * on a Windows Machine with PowerShell,
 * Go in the folder that has the script file ```tfplan.ps1``` (in the repo: ```/tf-plans```)
 
-Execute the script with the Plan and the Values folders as parameters:
+Execute the script with the Plan and the Values folders as parameters:    
 ```.\tfplan.ps1 -MainTfPath .\1-hub\3-sharedsvc\ -ValuesTfPath ..\subscriptions\demo\1-hub\3-sharedsvc\```
 
 A typical output will look like this:
 ```
 Starting "tfplan.ps1" with parameters: Command="Execute", Main=".\1-hub\3-sharedsvc\", Values="..\subscriptions\demo\1-hub\3-sharedsvc\"
-Plan   path is: D:\GitHub\azuretf\tf-plans\1-hub\3-sharedsvc\
-Values path is: D:\GitHub\azuretf\subscriptions\demo\1-hub\3-sharedsvc\
+Plan   path is: \GitHub\azuretf\tf-plans\1-hub\3-sharedsvc\
+Values path is: \GitHub\azuretf\subscriptions\demo\1-hub\3-sharedsvc\
 Copied 3 "srcd-" files in Values Path.
 Sourcing Variables values from Terraform Variables files names (variables_).
 Processed 3 JSON files and 12 variables.
 Executing Terraform...
-
-
+    >>> Terraform messaged and processing <<<
 Press Enter to finish script...
 Finished Terraform.
 Removed 7 "Env:TF_VAR_*" Environment variables.
