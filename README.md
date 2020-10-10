@@ -165,4 +165,4 @@ Why use 1 ```main_*.tf``` and multiple ```variables_*.tf``` files?
 What are the ```tf-plans```, ```modules``` and ```subscriptions``` folders for?
 > They are real life sanitized examples of an Azure infrastructure deployed with Terraform. Execute the folders following their number sequence and fill in the values adapted for your deployment. 
 
-**Note**: All elements are not provided, so some specifics in the deployments may not work and will need your adjustment. **Good news**: Terraform will complain when it doesn't have everything it needs to execute a Plan.
+**Note**: All elements are not provided. Some specifics in the deployments may not work and will need your adjustment. For instance, the secrets used in the AKS cluster are pulled through [akv2k8s](https://akv2k8s.io/) from another subscription. **Good news**: Terraform will complain when it doesn't have everything it needs to execute a Plan.

@@ -1,0 +1,7 @@
+# Default values 
+keyvaultName:
+keyvaultObjectName:
+keyvaultObjectType: secret
+k8sSecretName:
+keyType: mono
+secretKey: secret-key

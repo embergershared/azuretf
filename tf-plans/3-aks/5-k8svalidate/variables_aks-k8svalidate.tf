@@ -1,6 +1,7 @@
 #--------------------------------------------------------------
 #   Terraform Variables Declarations
 #--------------------------------------------------------------
-#   / Logs & Diags
+#   / Kubernetes Infrastructure Validation
 #--------------------------------------------------------------
-variable retention_days         {}
+variable validate_kv_name       {}
+variable validate_secret_name   {}

@@ -46,3 +46,10 @@ variable load_balancer_sku          {}
 variable dns_service_ip             {}
 variable service_cidr               {}
 variable docker_bridge_cidr         {}
+
+#--------------------------------------------------------------
+#   / Kubernetes Infrastructure
+#--------------------------------------------------------------
+variable piping_name      { default = "" }
+variable deploy_ilb       { type = bool }
+variable ilb_ip_suffix    { default = "" }

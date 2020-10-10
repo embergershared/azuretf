@@ -1,0 +1,8 @@
+apiVersion: v2
+appVersion: 1.0.0
+description: A Helm chart to deploy a simple test app to test Injection of secrets
+maintainers:
+- email: emberger@microsoft.com
+  name: Emmanuel Bergerat
+name: akv2k8s-injecttestapp
+version: 1.0.0

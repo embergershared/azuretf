@@ -1,0 +1,18 @@
+apiVersion: v2
+name: akv2k8s-syncsecret
+version: 1.0.0
+# Source: None
+# Inspired from: https://akv2k8s.io/tutorials/sync/1-secret/
+
+description: A Helm chart that deploys an AKVS CRD resource that synchronizes secrets from Azure Key Vault in a Kubernetes cluster
+
+kubeVersion: ">= 1.13.0"
+type: application
+icon: "https://akv2k8s.io/static/akv2k8s-b749ec5f4bfd805a88626e0fd2b9ba82.png"
+
+maintainers:
+- name: Emmanuel Bergerat
+  email: emberger@microsoft.com
+
+# The akv2k8s version used to build this Chart:
+appVersion: 1.1.0-beta

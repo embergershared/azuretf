@@ -85,8 +85,8 @@ resource null_resource k8sinfra_module_completion {
   depends_on = [
     helm_release.kured,
     helm_release.akv2k8s_crd,
-    #helm_release.akv2k8s_controller,
-    #helm_release.akv2k8s_envinjector,
+    helm_release.akv2k8s_controller,
+    helm_release.akv2k8s_envinjector,
     helm_release.ingress_pip_static,
     helm_release.ingress_pip_default,
     helm_release.ingress_azilb,
@@ -311,8 +311,8 @@ EOF
 resource kubernetes_namespace ingress_pip_static {
   count             = var.piping_name == "" ? 0 : 1
   depends_on        = [ 
-    #helm_release.akv2k8s_envinjector,
-    #helm_release.akv2k8s_controller,
+    helm_release.akv2k8s_envinjector,
+    helm_release.akv2k8s_controller,
     data.azurerm_public_ip.ing_pip
   ]
 
@@ -362,8 +362,8 @@ resource helm_release ingress_pip_static {
 resource kubernetes_namespace ingress_pip_default {
   count             = var.piping_name == "" ? 1 : 0
   depends_on        = [
-    #helm_release.akv2k8s_envinjector,
-    #helm_release.akv2k8s_controller,
+    helm_release.akv2k8s_envinjector,
+    helm_release.akv2k8s_controller,
   ]
 
   metadata {

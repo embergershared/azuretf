@@ -1,0 +1,11 @@
+apiVersion: spv.no/v1alpha1
+kind: AzureKeyVaultSecret
+metadata:
+  name: {{ required "An akvs resource name is required!" .Release.Name | quote }} # name of the akvs CRD object
+  namespace: {{ .Release.Namespace }}
+spec:
+  vault:
+    name: {{ required "An Azure KeyVault name is required!" .Values.keyvaultName | quote }} # name of key vault
+    object:
+      name: {{ required "An Azure KeyVault Item name is required!" .Values.keyvaultObjectName | quote }} # name of the key vault object to gather
+      type: {{ required "An Azure KeyVault Item type is required!" .Values.keyvaultObjectType }}  # type of key vault object
