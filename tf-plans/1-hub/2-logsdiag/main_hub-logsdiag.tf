@@ -9,6 +9,7 @@
 #                     - 1 Storage Account in CAC
 #                     - 1 Storage Account in CAE
 #                     - 1 Log Analytics Workspace
+#                     - 1 Log Analytics Solution ContainersInsights
 #
 # Folder/File   : /tf-plans/1-hub/2-logsdiag/main.tf
 # Terraform     : 0.12.+
@@ -18,56 +19,22 @@
 #
 # Created on    : 2020-07-25
 # Created by    : Emmanuel
-# Last Modified : 2020-09-03
+# Last Modified : 2020-09-19
 # Last Modif by : Emmanuel
+# Modif desc.   : Added Log Analytics Solution ContainerInsights
+
 
 #--------------------------------------------------------------
-#   Provider, locals
+#   Plan's Locals
 #--------------------------------------------------------------
-terraform {
-  required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-    }
-  }
-  required_version = ">= 0.13"
+module main_shortloc {
+  source    = "../../../../modules/shortloc"
+  location  = var.main_location
 }
-provider azurerm {
-  version         = "~> 2.12"
-  features {}
-    
-  tenant_id       = var.tenant_id
-  subscription_id = var.subscription_id
-  client_id       = var.tf_app_id
-  client_secret   = var.tf_app_secret
-}
-
 locals {
-  # Dates formatted
-  now = timestamp()
-  nowUTC = formatdate("YYYY-MM-DD hh:mm ZZZ", local.now) # 2020-06-16 14:44 UTC
-  nowFormatted = "${formatdate("YYYY-MM-DD", local.now)}T${formatdate("hh:mm:ss", local.now)}Z" # "2029-01-01T01:01:01Z"
-
-  # Tags values
-  tf_plan   = "/tf-plans/1-hub/2-logsdiag"
-
-  base_tags = "${map(
-    "BuiltBy", "Terraform",
-    "TfPlan", "${local.tf_plan}/main_hub-logsdiag.tf",
-    "TfValues", "${local.tf_values}/",
-    "TfState", "${local.tf_state}",
-    "BuiltOn","${local.nowUTC}",
-    "InitiatedBy", "User",
-  )}"
-
-  # Location short for Main location
-  shortl_main_location  = lookup({
-      canadacentral   = "cac", 
-      canadaeast      = "cae",
-      eastus          = "use" },
-    lower(var.main_location), "")
+  # Plan Tag value
+  tf_plan   = "/tf-plans/1-hub/2-logsdiag/main_hub-logsdiag.tf"
 }
-
 
 #--------------------------------------------------------------
 #   Logs & Diagnostics Resource Group
@@ -77,9 +44,7 @@ resource azurerm_resource_group logdiag_rg {
   name     = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-logsdiag")
   location = var.main_location
 
-  tags = merge(local.base_tags, "${map(
-    "RefreshedOn", "${local.nowUTC}",
-  )}")
+  tags = local.base_tags
   lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 
@@ -96,7 +61,7 @@ resource azurerm_storage_account cac_stdiag_storacct {
   account_replication_type    = "LRS"
   
   tags = local.base_tags
-  lifecycle { ignore_changes = [ tags ] }
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 #   / Canada East
 resource azurerm_storage_account cae_stdiag_storacct {
@@ -108,7 +73,7 @@ resource azurerm_storage_account cae_stdiag_storacct {
   account_replication_type    = "LRS"
     
   tags = local.base_tags
-  lifecycle { ignore_changes = [ tags ] }
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 
 #   / US East for CloudShell
@@ -124,20 +89,50 @@ resource azurerm_storage_account use_stdiag_storacct {
   tags = merge(local.base_tags, "${map(
       "ms-resource-usage","azure-cloud-shell",    # enforced rule for cloudshell storage
   )}")
-  lifecycle { ignore_changes = [ tags ] }
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 
 #--------------------------------------------------------------
 #   Logs & Diagnostics / Log Analytics Workspace
 #--------------------------------------------------------------
+#   / Log Analytics Workspace random Suffix
+resource random_id log_analytics_workspace_name_suffix {
+  byte_length = 1
+}
 #   / Log Analytics Workspace
 resource azurerm_log_analytics_workspace hub_laws {
-  name                = lower("log-cac-${var.subs_nickname}-${var.hub_laws_name}")
+  name                = lower("logws-cac-${var.subs_nickname}-hub-${random_id.log_analytics_workspace_name_suffix.dec}")
   resource_group_name = azurerm_resource_group.logdiag_rg.name
   location            = "canadacentral"   # This service is not available in Canada East
   sku                 = "Free"            # Default is "PerGB2018"
   retention_in_days   = var.retention_days
 
   tags = local.base_tags
-  lifecycle { ignore_changes = [ tags ] }
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
+}
+#   / Containers Insights Solution
+resource azurerm_log_analytics_solution contins_las {
+  solution_name         = "ContainerInsights"
+  location              = azurerm_log_analytics_workspace.hub_laws.location
+  resource_group_name   = azurerm_resource_group.logdiag_rg.name
+  workspace_resource_id = azurerm_log_analytics_workspace.hub_laws.id
+  workspace_name        = azurerm_log_analytics_workspace.hub_laws.name
+
+  plan {
+    publisher = "Microsoft"
+    product   = "OMSGallery/ContainerInsights"
+  }
+}
+#   / VMs Insights Solution
+resource azurerm_log_analytics_solution vm_las {
+  solution_name         = "VMInsights"
+  location              = azurerm_log_analytics_workspace.hub_laws.location
+  resource_group_name   = azurerm_resource_group.logdiag_rg.name
+  workspace_resource_id = azurerm_log_analytics_workspace.hub_laws.id
+  workspace_name        = azurerm_log_analytics_workspace.hub_laws.name
+
+  plan {
+    publisher = "Microsoft"
+    product   = "OMSGallery/VMInsights"
+  }
 }

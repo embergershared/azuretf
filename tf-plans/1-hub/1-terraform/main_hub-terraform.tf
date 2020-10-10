@@ -20,56 +20,20 @@
 # Created by    : Emmanuel
 # Last Modified : 2020-09-02
 # Last Modif by : Emmanuel
+# Modif desc.   : Factored common plans' blocks: terraform, provider azurerm, locals
 
-# Notes         : To get Terrafom in Trace/Debug mode, do: $env:TF_LOG=TRACE
+# Notes         : To get Terraform in Trace/Debug mode, do: $env:TF_LOG="TRACE" / Clear with: $env:TF_LOG=""
 
 #--------------------------------------------------------------
-#   Provider, locals
+#   Plan's Locals
 #--------------------------------------------------------------
-terraform {
-  required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-    }
-  }
-  required_version = ">= 0.13"
+module main_shortloc {
+  source    = "../../../../modules/shortloc"
+  location  = var.main_location
 }
-provider azurerm {
-  version         = "~> 2.25.0"
-  features {}
-    
-  tenant_id       = var.tenant_id
-  subscription_id = var.subscription_id
-  client_id       = var.tf_app_id
-  client_secret   = var.tf_app_secret
-}
-
 locals {
-  # Dates formatted
-  now = timestamp()
-  nowUTC = formatdate("YYYY-MM-DD hh:mm ZZZ", local.now) # 2020-06-16 14:44 UTC
-  nowFormatted = "${formatdate("YYYY-MM-DD", local.now)}T${formatdate("hh:mm:ss", local.now)}Z" # "2029-01-01T01:01:01Z"
-  in3years = timeadd(local.now, "26280h")
-  in3yFormatted = "${formatdate("YYYY-MM-DD", local.in3years)}T${formatdate("hh:mm:ss", local.in3years)}Z" # "2029-01-01T01:01:01Z"
-
-  # Tags values
-  tf_plan   = "/tf-plans/1-hub/1-terraform"
-
-  base_tags = "${map(
-    "BuiltBy", "Terraform",
-    "TfPlan", "${local.tf_plan}/main_hub-terraform.tf",
-    "TfValues", "${local.tf_values}/",
-    "TfState", "${local.tf_state}",
-    "BuiltOn","${local.nowUTC}",
-    "InitiatedBy", "User",
-  )}"
-
-  # Location short for Main location
-  shortl_main_location  = lookup({
-      canadacentral   = "cac", 
-      canadaeast      = "cae",
-      eastus          = "use" },
-    lower(var.main_location), "")
+  # Plan Tag value
+  tf_plan   = "/tf-plans/1-hub/1-terraform/main_hub-terraform.tf"
 }
 
 #--------------------------------------------------------------
@@ -80,9 +44,7 @@ resource azurerm_resource_group tfstates_rg {
   name     = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-terraform")
   location = var.main_location
 
-  tags = merge(local.base_tags, "${map(
-    "RefreshedOn", "${local.nowUTC}",
-  )}")
+  tags = local.base_tags
   lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 
@@ -99,7 +61,7 @@ resource azurerm_storage_account tfstate_storacct {
   account_replication_type    = "LRS"
   
   tags = local.base_tags
-  lifecycle { ignore_changes = [ tags ] }
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 #   / Terraform States container in Main Location
 resource azurerm_storage_container tfstatecontainer {

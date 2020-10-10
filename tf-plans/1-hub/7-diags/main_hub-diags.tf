@@ -5,7 +5,7 @@
 #                   - Networking RG
 #                   - Jumpboxes RG
 #
-# Folder/File   : /tf-plans/1-hub/7-diags/main_hub-diags.tf
+# Folder/File   : /tf-plans/1-hub/7-diag/main_hub-diag.tf
 # Terraform     : 0.12.+
 # Providers     : azurerm 2.+
 # Plugins       : none
@@ -13,39 +13,21 @@
 #
 # Created on    : 2020-07-11
 # Created by    : Emmanuel
-# Last Modified : 2020-09-03
+# Last Modified : 2020-09-11
 # Last Modif by : Emmanuel
+# Modif desc.   : Factored common plans' blocks: terraform, provider azurerm, locals
+
 
 #--------------------------------------------------------------
-#   Terraform Initialization
+#   Plan's Locals
 #--------------------------------------------------------------
-terraform {
-  required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-    }
-  }
-  required_version = ">= 0.13"
-}
-provider azurerm {
-  version         = "~> 2.12"
-  features        {}
-
-  tenant_id       = var.tenant_id
-  subscription_id = var.subscription_id
-  client_id       = var.tf_app_id
-  client_secret   = var.tf_app_secret
+module main_shortloc {
+  source    = "../../../../modules/shortloc"
+  location  = var.main_location
 }
 locals {
-  # Tags values
-  tf_plan   = "/tf-plans/1-hub/7-diags"
-
-  # Location short for Main location
-  shortl_main_location  = lookup({
-      canadacentral   = "cac", 
-      canadaeast      = "cae",
-      eastus          = "use" },
-    lower(var.main_location), "")
+  # Plan Tag value
+  tf_plan   = "/tf-plans/1-hub/7-diag/main_hub-diag.tf"
 }
 
 #--------------------------------------------------------------
@@ -53,13 +35,15 @@ locals {
 #--------------------------------------------------------------
 data azurerm_client_config current {
 }
+#   / Diagnostic Storage account
 data azurerm_storage_account logadiag_storacct {
   name                    = replace(lower("st${local.shortl_main_location}${var.subs_nickname}logsdiag"), "-", "")
   resource_group_name     = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-logsdiag")
 }
-data azurerm_log_analytics_workspace hub_laws {
-  name                = lower("log-cac-${var.subs_nickname}-${var.hub_laws_name}")
+#   / Log Analytics Workspace
+data azurerm_resources hub_laws {
   resource_group_name = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-logsdiag")
+  type                = "microsoft.operationalinsights/workspaces"
 }
 
 #--------------------------------------------------------------
@@ -71,7 +55,7 @@ module sharesvc_diag {
   # Shared Services Diag Setting instance specific
   sharedsvc_rg_name   = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.sharedsvc_rg_name}")
   stacct_id           = data.azurerm_storage_account.logadiag_storacct.id
-  laws_id             = data.azurerm_log_analytics_workspace.hub_laws.id
+  laws_id             = data.azurerm_resources.hub_laws.resources[0].id
   retention_days      = var.retention_days
 }
 
@@ -86,7 +70,7 @@ module networking_diag {
   hub_vnet_deploy_azfw    = var.hub_vnet_deploy_azfw
   hub_vnet_deploy_vnetgw  = var.hub_vnet_deploy_vnetgw
   stacct_id               = data.azurerm_storage_account.logadiag_storacct.id
-  laws_id                 = data.azurerm_log_analytics_workspace.hub_laws.id
+  laws_id                 = data.azurerm_resources.hub_laws.resources[0].id
   retention_days          = var.retention_days
 }
 
@@ -99,6 +83,6 @@ module jumpboxes_diag {
   # Jumpboxes Diag Setting instance specific
   jumpboxes_rg_name   = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vms_base_name}")
   stacct_id           = data.azurerm_storage_account.logadiag_storacct.id
-  laws_id             = data.azurerm_log_analytics_workspace.hub_laws.id
+  laws_id             = data.azurerm_resources.hub_laws.resources[0].id
   retention_days      = var.retention_days
 }

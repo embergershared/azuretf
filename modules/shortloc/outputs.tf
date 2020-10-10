@@ -1,0 +1,1 @@
+output code  { value = local.short_location }
