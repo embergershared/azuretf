@@ -79,7 +79,7 @@ Finished "tfplan.ps1" script
 ## Parameters
 | Parameter | Description | Mandatory |
 |-----------|-------------|-----------|
-| ```-MainTfPath``` | Used to give the argument of the Terraform Plan path | Yes |
+| ```-PlanTfPath``` | Used to give the argument of the Terraform Plan path | Yes |
 | ```-ValuesTfPath``` | Used to give the argument of the Terraform Values path | Yes |
 | ```-b``` | Generates the full build in the Values folder. The script stops and it is possible to execute Terraform commands manually, like ```terraform state list```. Once done, execute ```Pop-Location``` to return to the script path.    **Note**: the environment and copied files are not cleaned. | No |
 | ```-i``` | Executes a ```terraform init```    on the Plan + Values. | No |
@@ -103,18 +103,18 @@ To get started with the provided plans:
 7. Check that the file ```demo_tfspn_secret.json``` will not be checked-in your repo,
 8. Save the changes,
 9. Follow the **steps for the first plan**:    
-* The first plan ```\tf-plans\1-hub\1-terraform``` creates the resource group, storage account and container to store the Terraform states to follow.    
+* The first plan ```\tf-plans\1-hub\1-terraform``` creates a "Terraform" resource group, storage account and container to store the Terraform states to follow.    
 * To set it up:
     1. Execute the plan a first time:    
-    ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\```,
+    ```.\tfplan.ps1 -PlanTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\```,
     2. It will create the Resources and store the state locally,
     3. Once done, uncomment the lines 4 to 12 in the file ```\subscriptions\demo\1-hub\1-terraform\state_hub-terraform.tf``` (remove the starting ```# ```),
     4. Fill in the values for *subscription_id*, *resource_group_name* and *storage_account_name* in the file ```state_hub-terraform.tf```,
     5. Save the changes,
     6. Execute the plan a second time, with the ```-i``` argument:    
-    ```.\tfplan.ps1 -MainTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\ -i```,
+    ```.\tfplan.ps1 -PlanTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\ -i```,
     7. Answer ```yes``` to move the state from local to the Azure remote backend,
-* You're started.
+* You're all set.
 
 
 ## Comments
@@ -122,11 +122,14 @@ To get started with the provided plans:
 To discard changes, just hit enter at prompt.    
 To apply changes, type ```yes``` and hit enter.    
 * The Plans provided leverage the [Azure Cloud Adoption Framework](https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/), like the [Naming and Tagging](https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/naming-and-tagging) and the [Hub & Spoke architecture](https://docs.microsoft.com/en-us/azure/architecture/reference-architectures/hybrid-networking/hub-spoke). These may not fit your deployments and conventions. Please, adapt to your need.
-* The script approach presents limitations that Pipelines are best suited for:
+* The script approach presents these limitations that Pipelines are solving:
   * Have only 1 Variables declaration and reference it accross multiple Plans,
   * Avoid ```locals {  }``` repetitive declaration in all the Values folders,
   * Synchronize some tags and tokens values automatically,    
-  But the scripted approach allows to develop and debug very easily and quickly, as all pieces stay local and all Terraform CLI commands can be run directly, their outputs interpreted. It is way slower and unconvenient to develop in a pipeline.
+* But the script approach allows these benefits:
+  * To develop and debug very easily and quickly (pipelines are slow to run and debug),
+  * All pieces stay local and all Terraform CLI commands can be run directly,
+  * Commands outputs can be interpreted directly,
 
 ## Conventions
 * The JSON file with the values for a set of variables must have the same name pattern:
@@ -139,15 +142,15 @@ To apply changes, type ```yes``` and hit enter.
       * Once found at 1 level, it stops here,
     * Once all the JSON files for the required variables have been found, the values are processed in reverse order of their discovery: It ensures that the values set the closest to the instance will be the ones applied.
     * It is allows to override some defaults values specifically for in 1 instance deployment.
-* To ensure the processing of the default values, an empty variables Terraform file is created in the Plans folder. It ensures the default Values JSON file will be processed.    
-An example can be found with this file: ```\tf-plans\3-aks\2-cluster\variables_aks-defaults.tf``` it is empty, but it allows this values file to be processed: ```\subscriptions\demo\3-aks\demo_aks-defaults.json```
+* To ensure the processing of default values without declaring them in the Plan folder, an empty variable Terraform file can be created in the Plan folder. It ensures the default Values JSON file will be processed.    
+An example can be found with this file: ```\tf-plans\3-aks\2-cluster\variables_aks-defaults.tf``` it is empty, but it enables the values of this file to be processed: ```\subscriptions\demo\3-aks\demo_aks-defaults.json```
 
 # Q&A
 Why JSON for the values and not Terraform ```(auto.)tfvars.tf```?
-> JSON is system independent and can easily be manipulated by PowerShell, bash (or other shells) and CD Pipelines. Using JSON helps to be ready for Pipelines transition.    
+> JSON is system independent and can easily be manipulated by PowerShell, bash (or other shells) and CD Pipelines. Using JSON helps to be ready for Pipelines transition and not confuse "Plans" items (in ```*.tf``` files) from values (which are in ```*.json``` files).    
 
 Why set defaults values in JSON and not in the Terraform ```variables_*.tf``` files?
-> When declaring a variable in Terraform (```variable name { default = "default value" } ```), a "default value" can be set. But this declaration is part of the Plan, it is within the Plan. It defeats the approach of completely separating Plans and Values. It also makes the default values management difficult, especially when the default values are different from an environment type to another.
+> When declaring a variable in Terraform (```variable name { default = "default value" } ```), a **"default value"** can be set. But this declaration is part of the Plan, it is within the Plan. It defeats the approach of completely separating Plans and Values. It also makes the default values management difficult, especially when the default values are different from an environment type to another (like dev vs. prod).
 
 Why source control the Values' JSON files (except secrets)?    
 > A major problem we faced in a project using Terraform Enterprise was that the values are not versioned controlled in Terraform Enterprise. When the value of a variable in a workspace is changed with the UI, there is no way to track it. Source controlling the JSON files allows to track values changes AND use branching for all changes (Plans and/or Values). In the mentioned project, we pushed through the Pipeline the variables values to be used by the workspace before all the Plans execution leveraging curl API calls to set the Terraform Enterprise workspace variables values from our repo (except secrets that were injected by Jenkins).    
@@ -157,7 +160,9 @@ Why use the Environment Variables and not a file?
 
 Why use 1 ```main_*.tf``` and multiple ```variables_*.tf``` files?
 > The multiple variables files allows to see right away which variables are needed for a plan. It eases the use of Variable Groups in Azure DevOps.    
-> The use of 1 main Terraform files (instead of splitted main.tf for the Plan), allows IntelliSense in the IDE to reference and debug more easily resources while building the plan.
+> The use of 1 main Terraform files (instead of splitted main.tf for the Plan), allows IntelliSense in the IDE to **reference** and debug more easily resources while building the plan.
 
 What are the ```tf-plans```, ```modules``` and ```subscriptions``` folders for?
-> They are real life sanitized examples of an Azure infrastructure deployed with Terraform. Execute the folders following their number sequence and fill in the values adapted for your deployment. **Note**: All elements are not provided, so some specifics in the deployments may not work and will need your adjustment. **Good news**: Terraform will complain when it doesn't have everything it needs to execute a Plan.
+> They are real life sanitized examples of an Azure infrastructure deployed with Terraform. Execute the folders following their number sequence and fill in the values adapted for your deployment. 
+
+**Note**: All elements are not provided, so some specifics in the deployments may not work and will need your adjustment. **Good news**: Terraform will complain when it doesn't have everything it needs to execute a Plan.
