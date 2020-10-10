@@ -33,8 +33,6 @@ locals {
 #--------------------------------------------------------------
 #   Data collection of required resources
 #--------------------------------------------------------------
-data azurerm_client_config current {
-}
 #   / Diagnostic Storage account
 data azurerm_storage_account logadiag_storacct {
   name                    = replace(lower("st${local.shortl_main_location}${var.subs_nickname}logsdiag"), "-", "")

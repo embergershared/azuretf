@@ -31,6 +31,15 @@ resource azurerm_monitor_diagnostic_setting azfw_diag {
       enabled   = true
     }
   }
+  log {
+    category = "AzureFirewallDnsProxy"          # Azure Harcoded name
+    enabled  = true
+    retention_policy {
+      days      = var.retention_days
+      enabled   = true
+    }
+  }
+  
   metric {
     category = "AllMetrics"                     # Azure Harcoded name
     enabled  = true
