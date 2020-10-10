@@ -5,3 +5,4 @@ keyvaultObjectType: secret
 k8sSecretName:
 keyType: mono
 secretKey: secret-key
+contentType: application/x-json

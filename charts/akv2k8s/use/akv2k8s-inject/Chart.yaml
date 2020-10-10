@@ -1,5 +1,5 @@
 apiVersion: v2
-name: akv2k8s-injectsecret
+name: akv2k8s-inject
 version: 1.0.0
 # Source: None
 # Inspired from: https://akv2k8s.io/tutorials/env-injection/1-secret/
