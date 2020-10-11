@@ -24,10 +24,10 @@ To operate, it is required to:
 
 The following table lists configurable parameters of the ```akv2k8s-inject``` chart and their default values.
 
-|               Parameter                |                Description                   |                  Default                 |
-| -------------------------------------- | -------------------------------------------- | -----------------------------------------|
-| keyvaultName                           | Name of the Azure Key Vault to pull secrets from.             | None                 |
-| keyvaultObjectName                     | Name of the Key Vault object to use.      | None         |
-| keyvaultObjectType                     | Type of the Key Vault object to use. Possible values: ```key``` / ```secret``` / ```certificate```.     | ```secret``` |
+|Parameter|Description|Mandatory|Default|
+| ---------------- | --------------------- | -------------- | ----------------------- |
+| keyvaultName | Name of the Azure Key Vault to pull secrets from. | Yes | None |
+| keyvaultObjectName | Name of the Key Vault object to use. | Yes | None |
+| keyvaultObjectType | Type of the Key Vault object to use. Possible values: ```key``` / ```secret``` / ```certificate```. | No | ```secret``` |
 
 **Note**: The AKVS object created will have the  name of the Helm chart release that created it.
