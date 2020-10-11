@@ -1,70 +1,38 @@
 # Description   : This Terraform creates an AKS Cluster
 #                 It deploys:
-#                   - 1 AKS Service Principal,
+#                   - 1 AKS Service Principal (if var.can_create_azure_servprincipals == true),
 #                   - 1 AKS Resource Group,
 #                   - 1 VNet / 2 subnets,
-#                   - 1 AKS cluster with CNI, Load Balancer
+#                   - 1 AKS cluster with Service Principal.
 #
 
 # Folder/File   : /tf-plans/3-aks/2-cluster/main_aks-cluster.tf
 # Terraform     : 0.13.+
 # Providers     : azurerm 2.+
 # Plugins       : none
-# Modules       : /azsp, /aks
+# Modules       : /aks-cluster,
 #
 # Created on    : 2020-07-15
 # Created by    : Emmanuel
-# Last Modified :
-# Last Modif by :
+# Last Modified : 2020-10-08
+# Last Modif by : Emmanuel
+# Modif desc.   : Split back to AKS and k8sinfra
 
 #--------------------------------------------------------------
-#   Terraform Initialization
+#   1.: Plan's Locals
 #--------------------------------------------------------------
-terraform {
-  required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-    }
-  }
-  required_version = ">= 0.13"
-}
-provider azurerm {
-  version         = "~> 2.12"
-  features        {}
-
-  tenant_id       = var.tenant_id
-  subscription_id = var.subscription_id
-  client_id       = var.tf_app_id
-  client_secret   = var.tf_app_secret
+module main_shortloc {
+  source    = "../../../../../modules/shortloc"
+  location  = var.main_location
 }
 locals {
-  # Dates formatted
-  now           = timestamp()
-  nowUTC        = formatdate("YYYY-MM-DD hh:mm ZZZ", local.now)                                   # 2020-06-16 14:44 UTC
-  nowFormatted  = "${formatdate("YYYY-MM-DD", local.now)}T${formatdate("hh:mm:ss", local.now)}Z"  # "2029-01-01T01:01:01Z"
-
-  # Tags values
-  tf_plan   = "/tf-plans/3-aks/2-cluster"
-
-  base_tags = "${map(
-    "BuiltBy", "Terraform",
-    "TfPlan", "${local.tf_plan}/main_aks-cluster.tf",
-    "TfValues", "${local.tf_values}/",
-    "TfState", "${local.tf_state}",
-    "BuiltOn", "${local.nowUTC}",
-    "InitiatedBy", "User",
-  )}"
-
-  # Location short for Main location
-  shortl_main_location  = lookup({
-      canadacentral   = "cac", 
-      canadaeast      = "cae",
-      eastus          = "use" },
-    lower(var.main_location), "")
+  # Plan Tag value
+  tf_plan   = "/tf-plans/3-aks/2-cluster/main_aks-cluster.tf"
 }
 
+
 #--------------------------------------------------------------
-#   Data collection of required resources (KV & ACR)
+#   2.: Data collection of required resources (KV & ACR)
 #--------------------------------------------------------------
 data azurerm_key_vault kv_to_use {
   name                  = lower("kv-${local.shortl_main_location}-${var.subs_nickname}-${var.sharedsvc_kv_suffix}")
@@ -75,57 +43,33 @@ data azurerm_container_registry acr_to_use {
   resource_group_name   = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.sharedsvc_rg_name}")
 }
 #   / Log Analytics Workspace
-data azurerm_log_analytics_workspace hub_laws {
-  name                = lower("log-cac-${var.subs_nickname}-${var.hub_laws_name}")
+data azurerm_resources hub_laws {
   resource_group_name = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-logsdiag")
+  type                = "microsoft.operationalinsights/workspaces"
 }
 
 #--------------------------------------------------------------
-#   AKS Service Principal
-#--------------------------------------------------------------
-module aks_sp {
-  source            = "../../../../modules/azsp"
-  can_create_azure_servprincipals      = var.can_create_azure_servprincipals
-
-  tenant_id         = var.tenant_id
-  subscription_id   = var.subscription_id
-  tf_app_id         = var.tf_app_id
-  tf_app_secret     = var.tf_app_secret
-
-  calling_folder    = local.tf_plan
-  sp_naming         = lower("${var.subs_nickname}-gopher194-aks-${var.cluster_name}")
-  rotate_sp_secret  = var.rotate_aks_secret
-  kv_id             = data.azurerm_key_vault.kv_to_use.id
-  base_tags         = local.base_tags
-}
-
-#--------------------------------------------------------------
-#   AKS Cluster through module
+#   3.: AKS Cluster through module
 #--------------------------------------------------------------
 module aks_cluster {
-  source              = "../../../../modules/aks"
+  source              = "../../../../../modules/aks-cluster"
 
   #   / Module Mandatory settings
   calling_folder            = local.tf_plan
   cluster_location          = var.cluster_location
   aks_vnet_cidr             = var.aks_vnet_cidr
-  ilb_vnet_cidr             = var.ilb_vnet_cidr
   subs_nickname             = var.subs_nickname
   cluster_name              = lower(var.cluster_name)
   k8s_version               = var.k8s_version
-  aks_sp_id                 = var.can_create_azure_servprincipals ? module.aks_sp.sp_id : var.aks_sp_appid
-  aks_sp_secret             = var.can_create_azure_servprincipals ? module.aks_sp.sp_secret : var.aks_sp_appsecret
-  aks_sp_objid              = var.can_create_azure_servprincipals ? module.aks_sp.sp_objid : var.aks_sp_objid
-  linx_ssh_pubkey_path      = var.ssh_pubkey_path
-  laws_id                   = data.azurerm_log_analytics_workspace.hub_laws.id
+  laws_id                   = data.azurerm_resources.hub_laws.resources[0].id
   acr_id                    = data.azurerm_container_registry.acr_to_use.id
   secrets_kv_id             = data.azurerm_key_vault.kv_to_use.id
   hub_vnet_name             = lower("vnet-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vnet_base_name}")
   hub_rg_name               = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vnet_base_name}")
   base_tags                 = local.base_tags
   hub_vnet_deploy_azfw      = var.hub_vnet_deploy_azfw
+  hub_azfw_name             = lower("azfw-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vnet_base_name}")
   hub_vnet_deploy_vnetgw    = var.hub_vnet_deploy_vnetgw
-  aks_cluster_admins_AADIds = var.aks_cluster_admins_AADIds
 
   #   / Module Optional settings
   enable_privcluster         = var.enable_privcluster
@@ -136,6 +80,8 @@ module aks_cluster {
   enable_azpolicy            = var.enable_azpolicy
   enable_aci                 = var.enable_aci
   linx_admin_user            = var.linx_admin_user
+  win_admin_username         = var.win_admin_user
+  win_admin_password         = var.win_admin_password
   default_np_name            = var.default_np_name
   default_np_vmsize          = var.default_np_vmsize
   default_np_type            = var.default_np_type
@@ -149,5 +95,8 @@ module aks_cluster {
   outbound_type              = var.outbound_type
   load_balancer_sku          = var.load_balancer_sku
   authorized_ips             = var.authorized_ips
+  dns_service_ip             = var.dns_service_ip
+  service_cidr               = var.service_cidr
+  docker_bridge_cidr         = var.docker_bridge_cidr
 }
 #**/

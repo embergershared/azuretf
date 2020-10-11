@@ -1,7 +1,7 @@
 # Description   : This Terraform plan is used to:
 #                 - Setup the Diagnostics settings on an AKS Cluster
 
-# Folder/File   : /tf-plans/3-aks/3-diag/main_aks-diag.tf
+# Folder/File   : /tf-plans/3-aks/4-diag/main_aks-diag.tf
 # Terraform     : 0.12.+
 # Providers     : azurerm 2.+
 # Plugins       : none
@@ -9,65 +9,29 @@
 #
 # Created on    : 2020-07-15
 # Created by    : Emmanuel
-# Last Modified : 2020-09-03
+# Last Modified : 2020-09-11
 # Last Modif by : Emmanuel
+# Modif desc.   : Factored common plans' blocks: terraform, provider azurerm, locals
 
 
 #--------------------------------------------------------------
-#   Terraform Initialization
+#   Plan's Locals
 #--------------------------------------------------------------
-terraform {
-  required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-    }
-  }
-  required_version = ">= 0.13"
-}
-provider azurerm {
-  version         = "~> 2.12"
-  features        {}
-
-  tenant_id       = var.tenant_id
-  subscription_id = var.subscription_id
-  client_id       = var.tf_app_id
-  client_secret   = var.tf_app_secret
+module main_shortloc {
+  source    = "../../../../../modules/shortloc"
+  location  = var.main_location
 }
 locals {
-  # Dates formatted
-  now = timestamp()
-  nowUTC = formatdate("YYYY-MM-DD hh:mm ZZZ", local.now) # 2020-06-16 14:44 UTC
-  nowFormatted = "${formatdate("YYYY-MM-DD", local.now)}T${formatdate("hh:mm:ss", local.now)}Z" # "2029-01-01T01:01:01Z"
-  in3years = timeadd(local.now, "26280h")
-  in3yFormatted = "${formatdate("YYYY-MM-DD", local.in3years)}T${formatdate("hh:mm:ss", local.in3years)}Z" # "2029-01-01T01:01:01Z"
+  # Plan Tag value
+  tf_plan   = "/tf-plans/3-aks/3-aks/4-diag/main_aks-diag.tf"
 
-  # Tags values
-  tf_plan   = "/tf-plans/3-aks/3-diag/main_aks-diag.tf"
-
-  base_tags = "${map(
-    "BuiltBy", "Terraform",
-    "TfPlan", "${local.tf_plan}",
-    "TfValues", "${local.tf_values}/",
-    "TfState", "${local.tf_state}",
-    "BuiltOn","${local.nowUTC}",
-    "InitiatedBy", "User",
-  )}"
-
-  # Location short suffixes for AKS cluster
-  shortl_cluster_location  = lookup({
-      canadacentral   = "cac", 
-      canadaeast      = "cae",
-      eastus          = "use" },
-    lower(var.cluster_location), "")
-
-  # Location short for Main location
-  shortl_main_location  = lookup({
-      canadacentral   = "cac", 
-      canadaeast      = "cae",
-      eastus          = "use" },
-    lower(var.main_location), "")
+  # Location short for AKS Cluster location
+  shortl_cluster_location  = module.aks_shortloc.code
 }
-
+module aks_shortloc {
+  source    = "../../../../../modules/shortloc"
+  location  = var.cluster_location
+}
 
 #--------------------------------------------------------------
 #   Data collection of required resources
@@ -78,15 +42,14 @@ data azurerm_storage_account stdiag {
   resource_group_name     = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-logsdiag")
 }
 #   / Log Analytics Workspace
-data azurerm_log_analytics_workspace hub_laws {
-  name                = lower("log-cac-${var.subs_nickname}-${var.hub_laws_name}")
+data azurerm_resources hub_laws {
   resource_group_name = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-logsdiag")
+  type                = "microsoft.operationalinsights/workspaces"
 }
 #   / AKS Resource Group
 data azurerm_resource_group aks_rg {
   name        = lower("rg-${local.shortl_cluster_location}-${var.subs_nickname}-aks-${var.cluster_name}")
 }
-
 
 #--------------------------------------------------------------
 #   AKS Cluster Diagnostics Settings
@@ -96,6 +59,6 @@ module aks_fulldiag {
 
   aks_cluster_rg_name = data.azurerm_resource_group.aks_rg.name
   stacct_id           = data.azurerm_storage_account.stdiag.id
-  laws_id             = data.azurerm_log_analytics_workspace.hub_laws.id
+  laws_id             = data.azurerm_resources.hub_laws.resources[0].id
   retention_days      = var.retention_days
 }
