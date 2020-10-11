@@ -1,0 +1,17 @@
+apiVersion: v2
+name: whoami
+version: 1.0.0
+# Source: None
+
+description: A Helm chart that deploys a "Who am I" service on http://80
+
+kubeVersion: ">= 1.13.0"
+type: application
+# icon: "https://akv2k8s.io/static/akv2k8s-b749ec5f4bfd805a88626e0fd2b9ba82.png"
+
+maintainers:
+- name: Emmanuel Bergerat
+  email: emberger@microsoft.com
+
+# The whoami version used to build this Chart:
+appVersion: v1.5.0

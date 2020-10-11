@@ -8,7 +8,7 @@
 #               References:
 #                   https://docs.microsoft.com/en-us/azure/architecture/reference-architectures/hybrid-networking/shared-services
 #
-# Folder/File   : /tf-plans/1-hub/2-sharedsvc/main.tf
+# Folder/File   : /tf-plans/1-hub/3-sharedsvc/main_hub-sharedsvc.tf
 # Terraform     : 0.12.+
 # Providers     : azurerm 2.+
 # Plugins       : none
@@ -16,55 +16,21 @@
 #
 # Created on    : 2020-07-06
 # Created by    : Emmanuel
-# Last Modified :
-# Last Modif by :
+# Last Modified : 2020-09-11
+# Last Modif by : Emmanuel
+# Modif desc.   : Factored common plans' blocks: terraform, provider azurerm, locals
+
 
 #--------------------------------------------------------------
-#   Terraform Initialization
+#   Plan's Locals
 #--------------------------------------------------------------
-terraform {
-  required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-    }
-  }
-  required_version = ">= 0.13"
-}
-provider azurerm {
-  version         = "~> 2.12"
-  features        {}
-
-  tenant_id       = var.tenant_id
-  subscription_id = var.subscription_id
-  client_id       = var.tf_app_id
-  client_secret   = var.tf_app_secret
+module main_shortloc {
+  source    = "../../../../modules/shortloc"
+  location  = var.main_location
 }
 locals {
-  # Dates formatted
-  now = timestamp()
-  nowUTC = formatdate("YYYY-MM-DD hh:mm ZZZ", local.now) # 2020-06-16 14:44 UTC
-  nowFormatted = "${formatdate("YYYY-MM-DD", local.now)}T${formatdate("hh:mm:ss", local.now)}Z" # "2029-01-01T01:01:01Z"
-  in3years = timeadd(local.now, "26280h")
-  in3yFormatted = "${formatdate("YYYY-MM-DD", local.in3years)}T${formatdate("hh:mm:ss", local.in3years)}Z" # "2029-01-01T01:01:01Z"
-
-  # Tags values
-  tf_plan   = "/tf-plans/1-hub/3-sharedsvc"
-
-  base_tags = "${map(
-    "BuiltBy", "Terraform",
-    "TfPlan", "${local.tf_plan}/main_hub-sharedsvc.tf",
-    "TfValues", "${local.tf_values}/",
-    "TfState", "${local.tf_state}",
-    "BuiltOn","${local.nowUTC}",
-    "InitiatedBy", "User",
-  )}"
-
-  # Location short for Main location
-  shortl_main_location  = lookup({
-      canadacentral   = "cac", 
-      canadaeast      = "cae",
-      eastus          = "use" },
-    lower(var.main_location), "")
+  # Plan Tag value
+  tf_plan   = "/tf-plans/1-hub/3-sharedsvc/main_hub-sharedsvc.tf"
 }
 
 #--------------------------------------------------------------
@@ -81,9 +47,7 @@ resource azurerm_resource_group sharedsvc_rg {
   name        = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.sharedsvc_rg_name}")
   location    = var.main_location
 
-  tags = merge(local.base_tags, "${map(
-    "RefreshedOn", "${local.nowUTC}",
-  )}")
+  tags = local.base_tags
   lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 
@@ -104,7 +68,7 @@ resource azurerm_key_vault sharedsvc_kv {
   enabled_for_deployment          = false
   
   tags = local.base_tags
-  lifecycle { ignore_changes = [tags,] }
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 #   / Azure Key Vault Management Plane Access
 resource azurerm_role_assignment AzOwners {
@@ -185,5 +149,5 @@ resource azurerm_container_registry hub_acr {
   admin_enabled           = false
   
   tags = local.base_tags
-  lifecycle { ignore_changes = [ tags, ] }
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }

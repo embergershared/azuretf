@@ -5,19 +5,23 @@
 #     as TF_VAR_ variables as Environment variables,
 #
 #   - It requires 2 parameters:
-#     - MainTfPath  : is the folder where the Terraform code is (should not have values)
+#     - PlanTfPath  : is the folder where the Terraform code is (should not have values)
 #     - ValuesTfPath: is the folder where the values for the instance to create are
 #
 #   - It accepts optionals arguments:
-#     - "-b": Build   => It fully populates the folder to run Terraform commands in it
-#                         To go back to script folder, type "Pop-Location"
-#     - "-i": Init    => It fully populates the folder and start Terraform Init
-#     - "-p": Plan    => It fully populates the folder and start Terraform Plan
-#     - "-d": Destroy => It fully populates the folder and start Terraform Destroy
+#     no args   : Apply       => It fully populates the folder and start Terraform Apply
+#     - "-b"    : Build       => It fully populates the folder to run Terraform commands in it
+#                               To go back to script folder, type "Pop-Location"
+#     - "-i"    : Init        => It fully populates the folder and start Terraform Init
+#     - "-p"    : Plan        => It fully populates the folder and start Terraform Plan
+#     - "-a"    : Auto Apply  => It fully populates the folder and start Terraform Apply --autoapprove
+#     - "-d"    : Destroy     => It fully populates the folder and start Terraform Destroy
+#     - "-debug": Verbose     => The script runs in Debug and displays Write-Debug code
+#     - "-h"    : Halt        => The script runs and Halt before cleaning and exiting
 #        all other arguments or none will run a "Apply"
 #
 #   Notes:
-#   - If using "Build": "Pop-Location" brings you back to the launching folder,
+#   - If using "Build": "Pop-Location" brings you back to the Startedng dir,
 #   - Files from the Plan are copied with the prefix "srcd-",
 #   - "Press Enter to finish script" will:
 #     - Delete the Plan sourced files from the Values folder,
@@ -27,19 +31,24 @@
 # Folder/File   : /tf-plans/tfplan.ps1
 # Created on    : 2020-07-04
 # Created by    : Emmanuel
-# Last Modified : 2020-09-03
+# Last Modified : 2020-10-10
 # Last Modif by : Emmanuel
+# Modif scope   : Improved script, Fixed variables cascading logic.
 
 #--------------------------------------------------------------
 #   Script parameters inputs
 #--------------------------------------------------------------
-param ([string] $MainTfPath, [string] $ValuesTfPath)
+param ([string] $PlanTfPath, [string] $ValuesTfPath)
+$extSeparator = "==================================================================================================="
+$stepsSeparator = ">>> "
+Write-Host $extSeparator
 
 #--------------------------------------------------------------
 #   Processing fixed values
 #--------------------------------------------------------------
 # Debug preferences:
-$DebugPreference = "SilentlyContinue" # "SilentlyContinue" | "Continue" = Debug
+if($args.Contains("-debug")) { $DebugPreference = "Continue" }
+else { $DebugPreference = "SilentlyContinue" } # "SilentlyContinue" | "Continue" = Debug
 
 # Script constants
 $tfexe = "terraform"
@@ -49,22 +58,53 @@ $SourcingPrefix = "srcd-"
 $TfVariablesFilesPattern = "variables_"
 
 # Selecting if we Execute Terraform or Build the TfPlan in the Values' folder
-$Command = "Execute" ; $CleanAtEnd = "true"
+$Command = "Execute" ; $CleanAtEnd = "true" ; $Halt = "false"
 if($args.Contains("-b")) { $Command = "Build" ; $CleanAtEnd = "false" }
 if($args.Contains("-i")) { $Command = "Init" }
 if($args.Contains("-p")) { $Command = "Plan" }
+if($args.Contains("-a")) { $Command = "AutoApply" }
 if($args.Contains("-d")) { $Command = "Destroy" }
+if($args.Contains("-h")) { $Halt = "true" }
 
 #--------------------------------------------------------------
 #   Script Start
 #--------------------------------------------------------------
-cls
 Write-Debug "Raw arguments are: $args"
-Write-Host "Starting ""tfplan.ps1"" with parameters: Command=""$Command"", Main=""$MainTfPath"", Values=""$ValuesTfPath"""
+Write-Host "$($stepsSeparator)Started ""tfplan.ps1"" script."
+Write-Host "Parameters    : Command=""$Command"", Plan=""$PlanTfPath"", Values=""$ValuesTfPath"""
 
 #--------------------------------------------------------------
 #   Functions
 #--------------------------------------------------------------
+#   / Generate Full Path
+function BuildPlanTfPath {
+  param([string] $PlanTfPathInput)
+  Write-Debug "Started  BuildPlanTfPath($PlanTfPathInput)"
+  
+  # Build the path
+  if($PlanTfPathInput.Contains("."))
+  {
+    $PlanTfpath = "$PlanTfPathInput"
+  }
+  else {
+    $PlanTfpath = Join-Path -Path $PlansRootPath -ChildPath $PlanTfPathInput
+  }
+
+  $global:planFullPath = (Get-Item $PlanTfpath).Fullname
+
+  Write-Debug "    Built Plan   Path: ""$global:planFullPath"""
+
+  # Test the path exists
+  if (!(Test-Path -Path $global:planFullPath))
+  {
+    Write-Error "    Plan Path ""$global:planFullPath"" doesn't exist."
+  }
+  else {
+    Write-Debug "    Plan   Path exists."
+  }
+  Write-Host "Plan   path is: $global:planFullPath"
+  Write-Debug "Finished BuildPlanTfPath($PlanTfPathInput)"
+}
 function BuildValuesTfPath {
   param([string] $valuesTfPathInput)
   Write-Debug "Started    BuildValuesTfPath($valuesTfPathInput)"
@@ -85,56 +125,32 @@ function BuildValuesTfPath {
     $global:valueFullPath = (Get-Item $valpath).Fullname
   }
 
-  Write-Debug "    Built Path: ""$global:valueFullPath"""
+  Write-Debug "    Built Values Path: ""$global:valueFullPath"""
 
   # Test the path exists
   if (!(Test-Path -Path $global:valueFullPath))
   {
-    Write-Error "    The Values' Path ""$global:valueFullPath"" doesn't exist."
+    Write-Error "    Values Path ""$global:valueFullPath"" doesn't exist."
   }
   else {
-    Write-Debug "    Built Path exists."
+    Write-Debug "    Values Path exists."
   }
   Write-Host "Values path is: $global:valueFullPath"
   Write-Debug "Finished BuildValuesTfPath($valuesTfPathInput)"
 }
-function BuildMainTfPath {
-  param([string] $MainTfPathInput)
-  Write-Debug "Started  BuildMainTfPath($MainTfPathInput)"
-  
-  # Build the path
-  if($MainTfPathInput.Contains("."))
-  {
-    $MainTfpath = "$MainTfPathInput"
-  }
-  else {
-    $MainTfpath = Join-Path -Path $PlansRootPath -ChildPath $MainTfPathInput
-  }
-
-  $global:planFullPath = (Get-Item $MainTfpath).Fullname
-
-  Write-Debug "    Build Path: ""$global:planFullPath"""
-
-  # Test the path exists
-  if (!(Test-Path -Path $global:planFullPath))
-  {
-    Write-Error "The Main Path ""$global:planFullPath"" doesn't exist."
-  }
-  else {
-    Write-Debug "    Build Path exists."
-  }
-  Write-Host "Plan   path is: $global:planFullPath"
-  Write-Debug "Finished BuildMainTfPath($MainTfPathInput)"
-}
+#   / Copy Terraform files from Plan to Values' path
 function CopyFilesInValuesTfPath {
   Write-Debug "Started  CopyFilesInValuesTfPath()"
 
   # Clear current value
-  $global:sourcedFilesList = ""
+  $global:sourcedFilesList = @() # Declares it as an array
 
   # Build files list:
   #   Terraform plan files
-  $global:sourcedFilesList = Get-ChildItem -Path "$global:planFullPath\*" -Include *.tf
+  $global:sourcedFilesList += Get-ChildItem -Path "$global:planFullPath\*" -Include *.tf
+
+  #   Terraform plan Common files
+  $global:sourcedFilesList += Get-ChildItem -Path "$PSScriptRoot\*" -Include *main_common*.tf
 
   Write-Debug "    Files to be copied in Values Path:"
   $global:sourcedFilesList | ForEach-Object {
@@ -144,13 +160,14 @@ function CopyFilesInValuesTfPath {
   # Copy the files in Values path
   $global:sourcedFilesList | ForEach-Object {
     Copy-Item $_ -Destination "$global:valueFullPath\$($SourcingPrefix)$($_.Name)" -Force
-    Write-Debug "   Copied $_ in $global:valueFullPath"
+    Write-Debug "   Copied $_ into $global:valueFullPath"
   }
 
   Write-Debug "  Copied a total of $($global:sourcedFilesList.Length) files."
   Write-Host  "Copied $($global:sourcedFilesList.Length) ""$($SourcingPrefix)"" files in Values Path."
   Write-Debug "Finished CopyFilesInValuesTfPath()"
 }
+#   / Source Terraform variables values
 function SourceValuesInEnvVars {
   Write-Debug "Started  SourceValuesInEnvVars()"
 
@@ -179,9 +196,9 @@ function SourceFromTfVarFiles {
   Push-Location $global:valueFullPath
 
   # Listing the Terraform variables files declared for this plan
-  $tfvarFiles = ""
+  $tfvarFiles = @()
   $tfvarFiles = Get-ChildItem -Filter *$($TfVariablesFilesPattern)*.tf -File
-  Write-Debug "   Found $($tfvarFiles.Length) variables files for the plan:"
+  Write-Debug "   Found $($tfvarFiles.Count) variables files for the plan:"
   $tfvarFiles | ForEach-Object {
     Write-Debug "      $_"
   }
@@ -195,24 +212,26 @@ function SourceFromTfVarFiles {
     $tfvarValuesToSource += $pattern
   }
 
-  Write-Debug "   Extracted $($tfvarValuesToSource.Length) patterns to match."
+  Write-Debug "   Extracted $($tfvarValuesToSource.Count) patterns to match."
 
   # Searching for the JSON files going up the structure
   $nbValuesToFind = $tfvarValuesToSource.Length
+  $jsonFiles = @()  # Array of strings
+
   $tfvarValuesToSource | ForEach-Object {
     $valuesToFind = $_
     Write-Debug "   Finding JSON(s) for: $($valuesToFind)."
 
     $jsonFile = ""
     $path = Get-Item $global:valueFullPath
-    
+
     Do {
       $test = Get-ChildItem $path -Include *$($valuesToFind)*.json -Recurse -Exclude *.tfvars.json
       if($test){
         $nbValuesToFind -= 1
         $test | ForEach-Object {
           $jsonFile = $_.FullName
-          $global:jsonFiles += Get-ChildItem -Path $jsonFile
+          $jsonFiles += Get-ChildItem -Path $jsonFile
           Write-Debug "      Found JSON file: $($jsonFile)"
         }
       }
@@ -224,7 +243,8 @@ function SourceFromTfVarFiles {
   Write-Debug "   Remaining patterns to match = $($nbValuesToFind)."
 
   # Reverse files order to process closest JSON last
-  [array]::Reverse($global:jsonFiles)
+  Write-Debug "   Ordering JSON files for processing."
+  $global:jsonFiles = $jsonFiles | Sort-Object Directory
 
   Pop-Location
 
@@ -244,9 +264,10 @@ function SourceJson {
     }
   }
 }
+#   / Execute Terraform
 function ExecuteTerraform {
   Write-Debug "Started  ExecuteTerraform()"
-  Write-Host "Executing Terraform..."
+  Write-Host "$($stepsSeparator)Executing Terraform..."
 
   # Get current location
   Write-Debug "  Current location is: $(Get-location)"
@@ -294,20 +315,38 @@ function ExecuteTerraform {
       TerraformApply
     }
 
+    if($Command -eq "AutoApply")
+    {
+      # Is there a .terraform folder?
+      if (Test-Path -Path $global:valueFullPath\.terraform)
+      {
+        Write-Debug "    .terraform folder exists, skipping init."
+      }
+      else {
+        Write-Debug "    .terraform folder doesn't exist, initializing Terraform."
+        TerraformInit
+      }
+
+      # Execute Terraform Apply -auto-approve command
+      TerraformAutoApply
+    }
+
     if($Command -eq "Destroy")
     {
       TerraformDestroy
     }
 
-    # Wait for cleaning confirmation
-    Read-Host "Press Enter to finish script..."
+    if($Halt -eq "true") {
+        # Wait for cleaning confirmation
+        Read-Host "Press Enter to finish script"
+    }
 
     # Pop back
     Pop-Location
     Write-Debug "  Popped back to: $(Get-Location)"
   }
   
-  Write-Host "Finished Terraform."
+  Write-Host "$($stepsSeparator)Finished Terraform."
   Write-Debug "Finished ExecuteTerraform()"
 }
 function TerraformInit {
@@ -337,6 +376,15 @@ function TerraformApply {
   }
   Write-Debug "Finished TerraformApply()"
 }
+function TerraformAutoApply {
+  Write-Debug "Started  TerraformApply()"
+  try {
+    Invoke-Expression "$tfexe apply -auto-approve"
+  } catch {
+    Write-Debug "        Command Error: $_"
+  }
+  Write-Debug "Finished TerraformApply()"
+}
 function TerraformDestroy {
   Write-Debug "Started  TerraformDestroy()"
   try {
@@ -346,6 +394,7 @@ function TerraformDestroy {
   }
   Write-Debug "Finished TerraformDestroy()"
 }
+#   / Remove Terraform variables values
 function ClearValuesInEnvVars {
   Write-Debug "Started  ClearValuesInEnvVars()"
 
@@ -362,13 +411,6 @@ function ClearValuesInEnvVars {
       RemoveJson -json $vars
     }
   }
-
-  # # Clear their TF_VARS
-  # $vars = Get-ChildItem Env:TF_VAR_*
-  # $vars | ForEach-Object {
-  #   Write-Debug "    Removing $($_.Name)"
-  #   Remove-Item $_.PSPath
-  # }
 
   Write-Host "Removed $global:nbVarsRemoved ""Env:TF_VAR_*"" Environment variables."
 
@@ -387,6 +429,27 @@ function RemoveJson {
     }
   }
 }
+function ClearAllEnvTfVars {
+  Write-Debug "Started  ClearAllEnvTfVars()"
+
+  $global:nbVarsRemoved = 0
+
+  $vars = Get-ChildItem "env:TF_VAR_*"
+  $vars | ForEach-Object {
+    Write-Debug "      Removing: Env:$($_.Name)"
+    $var = Get-Item "Env:$($_.Name)" -ErrorAction SilentlyContinue
+    if($var -ne $null)
+    { 
+      Remove-Item $var.PSPath
+      Write-Debug "      Removed : Env:$($var.Name) | $($var.Value)"
+      $global:nbVarsRemoved += 1
+    }
+  }
+  Write-Host  "Removed $($global:nbVarsRemoved) variables from ""Env:""."
+
+  Write-Debug "Finished ClearAllEnvTfVars()"
+}
+#   / Delete copied files from Values' path
 function DeleteCopiedFilesInValuesTfPath {
   Write-Debug "Started  DeleteCopiedFilesInValuesTfPath()"
 
@@ -405,20 +468,22 @@ function DeleteCopiedFilesInValuesTfPath {
 }
 
 #--------------------------------------------------------------
-#   Main Code
+#   Script Main
 #--------------------------------------------------------------
-BuildMainTfPath($MainTfPath)
+BuildPlanTfPath($PlanTfPath)
 BuildValuesTfPath($ValuesTfPath)
 CopyFilesInValuesTfPath
 SourceValuesInEnvVars
 ExecuteTerraform             # Some commands are "Execute"& "Init" specific
 if($CleanAtEnd -eq "true")
 {
-  ClearValuesInEnvVars
+  #ClearValuesInEnvVars
+  ClearAllEnvTfVars
   DeleteCopiedFilesInValuesTfPath
 }
 
 #--------------------------------------------------------------
 #   Script End
 #--------------------------------------------------------------
-Write-Host "Finished ""tfplan.ps1"" script"
+Write-Host "Finished ""tfplan.ps1"" script."
+Write-Host $extSeparator

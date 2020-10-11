@@ -1,0 +1,1 @@
+output depended_on        { value = null_resource.k8sinfra_module_completion.id }

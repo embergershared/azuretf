@@ -12,5 +12,6 @@ variable tf_app_secret    {}
 #   / Subscription base
 #--------------------------------------------------------------
 variable subs_nickname    {}
+variable subs_adm_short   {}
 variable main_location    {}
 variable can_create_azure_servprincipals     { type = bool }
