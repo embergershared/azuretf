@@ -1,11 +1,3 @@
-provider azuread {
-  version = "~> 0.10.0"
-
-  tenant_id       = var.tenant_id
-  subscription_id = var.subscription_id
-  client_id       = var.tf_app_id
-  client_secret   = var.tf_app_secret
-}
 provider random {
   version = "~> 2.2"
 }
@@ -20,7 +12,7 @@ locals {
 
   module_tags = merge(var.base_tags, "${map(
     "file-encoding", "utf-8",
-    "TfModule", "/modules/azsp/main.tf",
+    "TfModule", "/modules/az-sp/main.tf",
   )}")
 }
 
@@ -29,22 +21,22 @@ locals {
 #--------------------------------------------------------------
 #   / Create Azure AD Application, SP and Password
 resource azuread_application azsp_app {
-  count           = var.can_create_azure_servprincipals ? 1 : 0
+  count           = var.create_az_sp ? 1 : 0
 
-  name            = lower("sp-${var.sp_naming}")
+  name            = lower("sp-${var.subs_nickname}-${var.subs_adm_short}-${var.sp_naming}")
 }
 resource azuread_service_principal azsp_sp {
-  count           = var.can_create_azure_servprincipals ? 1 : 0
+  count           = var.create_az_sp ? 1 : 0
 
   application_id  = azuread_application.azsp_app[0].application_id
 }
 resource random_uuid azsp_secret {
-  count           = var.can_create_azure_servprincipals ? 1 : 0
+  count           = var.create_az_sp ? 1 : 0
 
   keepers = { rotateSecret = var.rotate_sp_secret }
  }
 resource azuread_application_password azsp_app_pwd {
-  count           = var.can_create_azure_servprincipals ? 1 : 0
+  count           = var.create_az_sp ? 1 : 0
 
   application_object_id = azuread_application.azsp_app[0].id
   value                 = random_uuid.azsp_secret[0].result
@@ -52,29 +44,25 @@ resource azuread_application_password azsp_app_pwd {
 
   lifecycle { ignore_changes = [ end_date ] }
 }
-#   / Store AppId & AppSecret in Key Vault
+
+#--------------------------------------------------------------
+#   Store Service Principal info in Key Vault
+#--------------------------------------------------------------
+#   / Store App Id, Name & Secret in Key Vault
 resource azurerm_key_vault_secret azsp_appid_secret {
-  count           = var.can_create_azure_servprincipals ? 1 : 0
+  count           = var.create_az_sp ? 1 : 0
 
-  name            = lower("${azuread_application.azsp_app[0].name}-id")
-  content_type    = azuread_application.azsp_app[0].name
+  name            = lower("${var.subs_nickname}-sp-${var.sp_naming}")
   key_vault_id    = var.kv_id
-  value           = azuread_application.azsp_app[0].application_id
+  content_type    = azuread_application.azsp_app[0].name
   expiration_date = azuread_application_password.azsp_app_pwd[0].end_date
   not_before_date = local.nowFormatted
 
-  tags      = local.module_tags
-  lifecycle { ignore_changes  = [ tags, not_before_date, expiration_date ] }
-}
-resource azurerm_key_vault_secret azsp_apppwd_secret {
-  count           = var.can_create_azure_servprincipals ? 1 : 0
-
-  name            = lower("${azuread_application.azsp_app[0].name}-secret")
-  content_type    = azuread_application.azsp_app[0].name
-  key_vault_id    = var.kv_id
-  value           = azuread_application_password.azsp_app_pwd[0].value
-  expiration_date = azuread_application_password.azsp_app_pwd[0].end_date
-  not_before_date = local.nowFormatted
+  value           = jsonencode({
+                      "sp-appname"    = azuread_application.azsp_app[0].name,
+                      "sp-appid"      = azuread_application.azsp_app[0].application_id,
+                      "sp-appsecret"  = azuread_application_password.azsp_app_pwd[0].value,
+                      "sp-objid"      = azuread_service_principal.azsp_sp[0].object_id})
 
   tags      = local.module_tags
   lifecycle { ignore_changes  = [ tags, not_before_date, expiration_date ] }

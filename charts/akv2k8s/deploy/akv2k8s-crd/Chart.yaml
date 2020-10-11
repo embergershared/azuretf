@@ -1,0 +1,8 @@
+apiVersion: v2
+appVersion: 1.1.0
+description: A Helm chart yo deploy akv2k8s CRDs, equivalent to https://raw.githubusercontent.com/sparebankenvest/azure-key-vault-to-kubernetes/crd-1.1.0/crds/AzureKeyVaultSecret.yaml
+maintainers:
+- email: emberger@microsoft.com
+  name: Emmanuel
+name: azure-key-vault-crd
+version: 1.1.0

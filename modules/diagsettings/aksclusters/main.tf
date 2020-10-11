@@ -23,13 +23,21 @@ resource azurerm_monitor_diagnostic_setting aks_diag {
   log_analytics_workspace_id  = var.laws_id
 
   log {
-    category    = "kube-apiserver"
+    category    = "cluster-autoscaler"
     enabled     = true
     retention_policy {
       enabled   = true
       days      = var.retention_days
     }
-  }    
+  }
+  log {
+    category    = "kube-scheduler"
+    enabled     = true
+    retention_policy {
+      enabled   = true
+      days      = var.retention_days
+    }
+  }
   log {
     category    = "kube-audit"
     enabled     = true
@@ -47,7 +55,7 @@ resource azurerm_monitor_diagnostic_setting aks_diag {
     }
   }
   log {
-    category    = "kube-scheduler"
+    category    = "kube-apiserver"
     enabled     = true
     retention_policy {
       enabled   = true
@@ -55,7 +63,15 @@ resource azurerm_monitor_diagnostic_setting aks_diag {
     }
   }
   log {
-    category    = "cluster-autoscaler"
+    category    = "kube-audit-admin"
+    enabled     = true
+    retention_policy {
+      enabled   = true
+      days      = var.retention_days
+    }
+  }
+  log {
+    category    = "guard"
     enabled     = true
     retention_policy {
       enabled   = true

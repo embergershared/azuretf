@@ -16,55 +16,21 @@
 #
 # Created on    : 2020-04-11
 # Created by    : Emmanuel
-# Last Modified : 2020-07-10
+# Last Modified : 2020-09-18
 # Last Modif by : Emmanuel
+# Modif desc.   : Commented redundant NSG Inbound rules
+
 
 #--------------------------------------------------------------
-#   Terraform Initialization
+#   Plan's Locals
 #--------------------------------------------------------------
-terraform {
-  required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-    }
-  }
-  required_version = ">= 0.13"
-}
-provider azurerm {
-  version         = "~> 2.12"
-  features        {}
-
-  tenant_id       = var.tenant_id
-  subscription_id = var.subscription_id
-  client_id       = var.tf_app_id
-  client_secret   = var.tf_app_secret
+module main_shortloc {
+  source    = "../../../../modules/shortloc"
+  location  = var.main_location
 }
 locals {
-  # Dates formatted
-  now = timestamp()
-  nowUTC = formatdate("YYYY-MM-DD hh:mm ZZZ", local.now) # 2020-06-16 14:44 UTC
-  nowFormatted = "${formatdate("YYYY-MM-DD", local.now)}T${formatdate("hh:mm:ss", local.now)}Z" # "2029-01-01T01:01:01Z"
-  in3years = timeadd(local.now, "26280h")
-  in3yFormatted = "${formatdate("YYYY-MM-DD", local.in3years)}T${formatdate("hh:mm:ss", local.in3years)}Z" # "2029-01-01T01:01:01Z"
-
-  # Tags values
-  tf_plan   = "/tf-plans/1-hub/5-jumpboxes"
-
-  base_tags = "${map(
-    "BuiltBy", "Terraform",
-    "TfPlan", "${local.tf_plan}/main_hub-jumpboxes.tf",
-    "TfValues", "${local.tf_values}/",
-    "TfState", "${local.tf_state}",
-    "BuiltOn","${local.nowUTC}",
-    "InitiatedBy", "User",
-  )}"
-
-  # Location short for Main location
-  shortl_main_location  = lookup({
-      canadacentral   = "cac", 
-      canadaeast      = "cae",
-      eastus          = "use" },
-    lower(var.main_location), "")
+  # Plan Tag value
+  tf_plan   = "/tf-plans/1-hub/5-jumpboxes/main_hub-jumpboxes.tf"
 }
 
 #--------------------------------------------------------------
@@ -81,32 +47,31 @@ data azurerm_virtual_network hub_vnet {
 }
 
 #--------------------------------------------------------------
-#   Hub Networking / Jumpboxes
+#   Hub Jumpboxes / Networking
 #--------------------------------------------------------------
 #   / Jumpboxes Resource Group
-resource azurerm_resource_group jumpbox_win_rg {
+resource azurerm_resource_group jumpboxes_rg {
   name        = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vms_base_name}")
   location    = var.main_location
 
-  tags = merge(local.base_tags, "${map(
-    "RefreshedOn", "${local.nowUTC}",
-  )}")
+  tags = local.base_tags
   lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 #   / VMs' subnet Network Security Group
-resource azurerm_network_security_group vms_subnet_nsg {
+resource azurerm_network_security_group jumpboxes_subnet_nsg {
   name        = lower("nsg-${local.shortl_main_location}-${var.subs_nickname}-snet-jumpboxes")
 
-  resource_group_name     = azurerm_resource_group.jumpbox_win_rg.name
-  location                = azurerm_resource_group.jumpbox_win_rg.location
+  resource_group_name     = azurerm_resource_group.jumpboxes_rg.name
+  location                = azurerm_resource_group.jumpboxes_rg.location
 
   tags = local.base_tags
-  lifecycle { ignore_changes = [ tags ] }
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 #   / VMs NSG Network Security Rules
+/* These rules are covered by Default rule 65000 AllowVnetInbound
 resource azurerm_network_security_rule In_Allow_VnetRdp3389 {
-  resource_group_name         = azurerm_network_security_group.vms_subnet_nsg.resource_group_name
-  network_security_group_name = azurerm_network_security_group.vms_subnet_nsg.name
+  resource_group_name         = azurerm_network_security_group.jumpboxes_subnet_nsg.resource_group_name
+  network_security_group_name = azurerm_network_security_group.jumpboxes_subnet_nsg.name
   
   name                        = "In-Allow-VnetRdp3389"
   priority                    = 1000
@@ -120,25 +85,9 @@ resource azurerm_network_security_rule In_Allow_VnetRdp3389 {
   destination_address_prefix  = "VirtualNetwork"
   destination_port_range      = "3389"
 }
-resource azurerm_network_security_rule In_Allow_PcEbRdp3389 {
-  resource_group_name         = azurerm_network_security_group.vms_subnet_nsg.resource_group_name
-  network_security_group_name = azurerm_network_security_group.vms_subnet_nsg.name
-  
-  name                        = "In-Allow-PcEbRdp3389"
-  priority                    = 1050
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "TCP"
-  
-  source_address_prefix       = "45.44.243.251/32"
-  source_port_range           = "*"
-  
-  destination_address_prefix  = "VirtualNetwork"
-  destination_port_range      = "3389"
-}
 resource azurerm_network_security_rule In_Allow_VnetHttp80 {
-  resource_group_name         = azurerm_network_security_group.vms_subnet_nsg.resource_group_name
-  network_security_group_name = azurerm_network_security_group.vms_subnet_nsg.name
+  resource_group_name         = azurerm_network_security_group.jumpboxes_subnet_nsg.resource_group_name
+  network_security_group_name = azurerm_network_security_group.jumpboxes_subnet_nsg.name
   
   name                        = "In-Allow-VnetHttp80"
   priority                    = 1100
@@ -153,8 +102,8 @@ resource azurerm_network_security_rule In_Allow_VnetHttp80 {
   destination_port_range      = "80"
 }
 resource azurerm_network_security_rule In_Allow_VnetHttps443 {
-  resource_group_name         = azurerm_network_security_group.vms_subnet_nsg.resource_group_name
-  network_security_group_name = azurerm_network_security_group.vms_subnet_nsg.name
+  resource_group_name         = azurerm_network_security_group.jumpboxes_subnet_nsg.resource_group_name
+  network_security_group_name = azurerm_network_security_group.jumpboxes_subnet_nsg.name
   
   name                        = "In-Allow-VnetHttps443"
   priority                    = 1200
@@ -167,41 +116,78 @@ resource azurerm_network_security_rule In_Allow_VnetHttps443 {
   
   destination_address_prefix  = "VirtualNetwork"
   destination_port_range      = "443"
+} */
+resource azurerm_network_security_rule In_Allow_InternetPublicIpRdp3389 {
+  count                       = var.internetip_allowed_toconnect == null ? 0 : 1
+
+  resource_group_name         = azurerm_network_security_group.jumpboxes_subnet_nsg.resource_group_name
+  network_security_group_name = azurerm_network_security_group.jumpboxes_subnet_nsg.name
+  
+  name                        = "In-Allow-PublicIpRdp3389"
+  priority                    = 1050
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "TCP"
+  
+  source_address_prefix       = "${var.internetip_allowed_toconnect}/32"
+  source_port_range           = "*"
+  
+  destination_address_prefix  = "VirtualNetwork"
+  destination_port_range      = "3389"
 }
-#   / VMs Subnet
+#   / VMs' Subnet
 resource azurerm_subnet jumpboxes_subnet {
   name                    = "snet-jumpboxes"
   resource_group_name     = data.azurerm_resource_group.hub_vnet_rg.name
   virtual_network_name    = data.azurerm_virtual_network.hub_vnet.name
   address_prefixes        = [ replace(var.hub_vnet_prefix, "0/24", "0/27"), ]
 }
-#   / VMs Subnet NSG association
-resource azurerm_subnet_network_security_group_association vms_subnet_to_nsg_association {
+#   / VMs' Subnet NSG association
+resource azurerm_subnet_network_security_group_association jumpboxes_subnet_to_nsg_association {
   subnet_id                   = azurerm_subnet.jumpboxes_subnet.id
-  network_security_group_id   = azurerm_network_security_group.vms_subnet_nsg.id
+  network_security_group_id   = azurerm_network_security_group.jumpboxes_subnet_nsg.id
 }
 
 #--------------------------------------------------------------
-#   Hub Networking / Jumpboxes / Win2019 VM1
+#   Hub Jumpboxes / Persistent data disk
 #--------------------------------------------------------------
-#   / Public Internet IP Address
-resource azurerm_public_ip win2019_vm1_pip1 {
-  name                = "pip-${local.shortl_main_location}-${var.subs_nickname}-vm1-pip1"
-  resource_group_name = azurerm_resource_group.jumpbox_win_rg.name
-  location            = azurerm_resource_group.jumpbox_win_rg.location
+#   / Data managed disk
+resource azurerm_managed_disk win_data_disk {
+  name                  = "disk-${local.shortl_main_location}-${var.subs_nickname}-win-vm-data"
+  resource_group_name   = azurerm_resource_group.jumpboxes_rg.name
+  location              = azurerm_resource_group.jumpboxes_rg.location
+
+  storage_account_type  = "Standard_LRS"
+  create_option         = "Empty"
+  disk_size_gb          = "1"
+
+  tags = local.base_tags
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
+}
+
+#--------------------------------------------------------------
+#   Hub Jumpboxes / Windows VM1 Networking
+#--------------------------------------------------------------
+#   / Public Internet IP Address (if not using Azure Firewall)
+resource azurerm_public_ip win_vm1_pip {
+  count               = var.internetip_allowed_toconnect == null ? 0 : 1
+
+  name                = "pip-${local.shortl_main_location}-${var.subs_nickname}-win-vm1"
+  resource_group_name = azurerm_resource_group.jumpboxes_rg.name
+  location            = azurerm_resource_group.jumpboxes_rg.location
   allocation_method   = "Dynamic"
 }
 #   / Internal NIC1
-resource azurerm_network_interface win2019_vm1_nic1 {
-  name                = "nic-${local.shortl_main_location}-${var.subs_nickname}-vm1-nic1"
-  resource_group_name = azurerm_resource_group.jumpbox_win_rg.name
-  location            = azurerm_resource_group.jumpbox_win_rg.location
+resource azurerm_network_interface win_vm1_nic {
+  name                = "nic-${local.shortl_main_location}-${var.subs_nickname}-win-vm1"
+  resource_group_name = azurerm_resource_group.jumpboxes_rg.name
+  location            = azurerm_resource_group.jumpboxes_rg.location
 
   ip_configuration {
-    name                          = "ipconf-nic-to-snet-jumpboxes"
+    name                          = "ipconf-nicwinvm1-to-snet-jumpboxes"
     subnet_id                     = azurerm_subnet.jumpboxes_subnet.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.win2019_vm1_pip1.id
+    public_ip_address_id          = var.internetip_allowed_toconnect == null ? null : azurerm_public_ip.win_vm1_pip[0].id
   }
 }
 
@@ -223,8 +209,8 @@ resource azurerm_key_vault_key win_vms_kek {
 #   / Disk Encryption Set for VMs with KeyVault KEK
 resource azurerm_disk_encryption_set win_vms_encrypt {
   name                = "${var.hub_vms_winbase_name}-DisksEncrypt${local.shortd_sharedsvc_location}"
-  resource_group_name = azurerm_resource_group.jumpbox_win_rg.name
-  location            = azurerm_resource_group.jumpbox_win_rg.location
+  resource_group_name = azurerm_resource_group.jumpboxes_rg.name
+  location            = azurerm_resource_group.jumpboxes_rg.location
   key_vault_key_id    = azurerm_key_vault_key.win_vms_kek.id
 
   identity {
@@ -238,23 +224,27 @@ resource azurerm_disk_encryption_set win_vms_encrypt {
   }
 }
 */
-#   / Windows 2019 VM1
+#--------------------------------------------------------------
+#   Hub Jumpboxes / Windows VM1
+#--------------------------------------------------------------
+#   / Windows VM1
 resource azurerm_windows_virtual_machine win_vm1 {
-  name                = "vm-${local.shortl_main_location}${var.subs_nickname}-1"
+  name                = "vm-${local.shortl_main_location}-${var.subs_nickname}-win-vm1"
+  computer_name       = "${local.shortl_main_location}${var.subs_nickname}winvm1" # 15 chars max. NetBIOS: https://docs.microsoft.com/en-us/troubleshoot/windows-server/identity/naming-conventions-for-computer-domain-site-ou#netbios-computer-names
 
-  resource_group_name = azurerm_resource_group.jumpbox_win_rg.name
-  location            = azurerm_resource_group.jumpbox_win_rg.location
+  resource_group_name = azurerm_resource_group.jumpboxes_rg.name
+  location            = azurerm_resource_group.jumpboxes_rg.location
   size                = var.win_vm_size
   admin_username      = var.win_admin_user
   admin_password      = var.win_admin_pwd
   timezone            = "Eastern Standard Time"
 
   network_interface_ids = [
-    azurerm_network_interface.win2019_vm1_nic1.id,
+    azurerm_network_interface.win_vm1_nic.id,
   ]
 
   os_disk {
-    name                    = "disk-${local.shortl_main_location}-${var.subs_nickname}-vm1-os"
+    name                    = "disk-${local.shortl_main_location}-${var.subs_nickname}-win-vm1-os"
     caching                 = "ReadWrite"
     storage_account_type    = "Standard_LRS"
     #disk_encryption_set_id  = azurerm_disk_encryption_set.win_vms_encrypt.id
@@ -269,7 +259,10 @@ resource azurerm_windows_virtual_machine win_vm1 {
   }
 
   tags = local.base_tags
-  lifecycle { ignore_changes = [ tags, os_disk[0].disk_encryption_set_id, ] }
+  lifecycle { ignore_changes = [ 
+    tags["BuiltOn"], 
+    os_disk[0].disk_encryption_set_id,
+    ] }
 
   /*
   To install Windows Terminal, run in PowerShell as Admin:
@@ -278,14 +271,22 @@ resource azurerm_windows_virtual_machine win_vm1 {
     choco install microsoft-windows-terminal
   */
 }
+#   / Data disk attachment to VM1
+resource azurerm_virtual_machine_data_disk_attachment datadisk_to_vm1 {
+  managed_disk_id    = azurerm_managed_disk.win_data_disk.id
+  virtual_machine_id = azurerm_windows_virtual_machine.win_vm1.id
+  lun                = "10"
+  caching            = "ReadWrite"
+}
 
 #####################   Important Note  #######################
 #     Due to Terraform 0.12 limitations on conditional
-#     The Firewall Private IP is deducted and not gathered
+#     The Firewall Private IP is deducted and not gathered for:
+#     - azurerm_route_table.vms_subnet_egress_udr.next_hop_in_ip_address
 #     v 0.13 with count on modules will solve this
 #
 #--------------------------------------------------------------
-#   Hub Networking / Jumpboxes / AzFw connection (conditional)
+#   Hub Jumpboxes / Networking / AzFw Linking (conditional)
 #--------------------------------------------------------------
 #   / Get Firewall in the Hub Networking RG
 data azurerm_resources azfw_in_hub_netowkring_rg {
@@ -293,25 +294,18 @@ data azurerm_resources azfw_in_hub_netowkring_rg {
   type                = "Microsoft.Network/azureFirewalls"
 }
 
-/*
-data azurerm_firewall hub_azfw {
-  name                = data.azurerm_resources.azfw_in_hub_netowkring_rg.resources[0].name
-  resource_group_name = data.azurerm_resource_group.hub_vnet_rg.name
-}
-*/
-
-#   / Az Firewall Allow Access to *.com, *.ca & *.fr
+#   / Az Firewall: Allow Access to *.com, *.ca & *.fr for Jumpboxes Subnet
 resource azurerm_firewall_application_rule_collection Allow_Internet_Out {
   count               = var.hub_vnet_deploy_azfw ? 1 : 0
 
-  name                = "AppRuleColl-Allow-Internet-Out"
+  name                = "AppRuleColl-Allow-Jumpboxes-Internet-Out"
   azure_firewall_name = data.azurerm_resources.azfw_in_hub_netowkring_rg.resources[0].name
   resource_group_name = data.azurerm_resource_group.hub_vnet_rg.name
   priority            = 100
   action              = "Allow"
 
   rule {
-    name = "Access_Https443_to_COM_CA_FR"
+    name = "Allow_Https443_from_Jumpboxes_to_COM_CA_FR"
     source_addresses = [ azurerm_subnet.jumpboxes_subnet.address_prefix , ]
     target_fqdns = [ "*.com", "*.ca", "*.fr", ]
     protocol {
@@ -321,7 +315,7 @@ resource azurerm_firewall_application_rule_collection Allow_Internet_Out {
     }
 
   rule {
-    name = "Access_Http80_to_COM_CA_FR"
+    name = "Allow_Http80_from_Jumpboxes_to_COM_CA_FR"
     source_addresses = [ azurerm_subnet.jumpboxes_subnet.address_prefix , ]
     target_fqdns = [ "*.com", "*.ca", "*.fr", ]
     protocol {
@@ -330,53 +324,13 @@ resource azurerm_firewall_application_rule_collection Allow_Internet_Out {
     }
   }
 }
-
-#   / Az Firewall AKS Global required
-resource azurerm_firewall_application_rule_collection Allow_AksGlobal_Out {
-  count               = var.hub_vnet_deploy_azfw ? 1 : 0
-
-  name                = "AppRuleColl-Allow-AksGlobalRequired-Out"
-  azure_firewall_name = data.azurerm_resources.azfw_in_hub_netowkring_rg.resources[0].name
-  resource_group_name = data.azurerm_resource_group.hub_vnet_rg.name
-  priority            = 150
-  action              = "Allow"
-
-  rule {
-    name              = "Access_Http80Https443_to_AksGlobal"
-    source_addresses  = [ "*" , ]
-    target_fqdns      = [  "aksrepos.azurecr.io", 
-                          "*blob.core.windows.net" ,
-                          "mcr.microsoft.com" ,
-                          "*cdn.mscr.io" ,
-                          "*.data.mcr.microsoft.com" ,
-                          "management.azure.com" ,
-                          "login.microsoftonline.com" ,
-                          "ntp.ubuntu.com" ,
-                          "packages.microsoft.com" ,
-                          "acs-mirror.azureedge.net"
-                        ]
-
-    protocol {
-      port = "443"
-      type = "Https"
-    }
-    protocol {
-      port = "80"
-      type = "Http"
-    }
-  }
-}
-
-#--------------------------------------------------------------
-#   Hub Networking / Azure Firewall / Jumpboxes routing to Az Fw
-#--------------------------------------------------------------
 #   / Hub Jumpboxes User Defined Route Table
 resource azurerm_route_table vms_subnet_egress_udr {
   count                           = var.hub_vnet_deploy_azfw ? 1 : 0
 
   name                            = lower("routetable-${azurerm_subnet.jumpboxes_subnet.name}-egress-to-azfw")
-  location                        = azurerm_resource_group.jumpbox_win_rg.location
-  resource_group_name             = azurerm_resource_group.jumpbox_win_rg.name
+  location                        = azurerm_resource_group.jumpboxes_rg.location
+  resource_group_name             = azurerm_resource_group.jumpboxes_rg.name
   disable_bgp_route_propagation   = false
 
   route {
@@ -393,12 +347,12 @@ resource azurerm_subnet_route_table_association vms_subnet_egress_udr_subnet_ass
   subnet_id       = azurerm_subnet.jumpboxes_subnet.id
   route_table_id  = azurerm_route_table.vms_subnet_egress_udr[0].id
 }
-#   / Block Internet Access for the VMs' Subnet at NSG level
+#   / Block Direct Internet Access for the VMs' Subnet at NSG level
 resource azurerm_network_security_rule Out_Allow_VNet {
   count                       = var.hub_vnet_deploy_azfw ? 1 : 0
 
-  resource_group_name         = azurerm_network_security_group.vms_subnet_nsg.resource_group_name
-  network_security_group_name = azurerm_network_security_group.vms_subnet_nsg.name
+  resource_group_name         = azurerm_network_security_group.jumpboxes_subnet_nsg.resource_group_name
+  network_security_group_name = azurerm_network_security_group.jumpboxes_subnet_nsg.name
   
   name                        = "Out-Allow-VNet"
   priority                    = 1000
@@ -415,10 +369,10 @@ resource azurerm_network_security_rule Out_Allow_VNet {
 resource azurerm_network_security_rule Out_Deny_Internet {
   count                       = var.hub_vnet_deploy_azfw ? 1 : 0
 
-  resource_group_name         = azurerm_network_security_group.vms_subnet_nsg.resource_group_name
-  network_security_group_name = azurerm_network_security_group.vms_subnet_nsg.name
+  resource_group_name         = azurerm_network_security_group.jumpboxes_subnet_nsg.resource_group_name
+  network_security_group_name = azurerm_network_security_group.jumpboxes_subnet_nsg.name
   
-  name                        = "Out-Deny-Internet"
+  name                        = "Out-Deny-DirectInternet"
   priority                    = 4096
   direction                   = "Outbound"
   access                      = "Deny"

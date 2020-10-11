@@ -18,69 +18,35 @@
 #
 #
 # Folder/File   : /tf-plans/1-hub/4-networking/main.tf
-# Terraform     : 0.12.+
+# Terraform     : 0.13.+
 # Providers     : azurerm 2.+
 # Plugins       : none
 # Modules       : none
 #
 # Created on    : 2020-04-11
 # Created by    : Emmanuel
-# Last Modified : 2020-09-03
+# Last Modified : 2020-09-11
 # Last Modif by : Emmanuel
+# Modif desc.   : Factored common plans' blocks: terraform, provider azurerm, locals
+
 
 #--------------------------------------------------------------
-#   Terraform Initialization
+#   Plan's Locals
 #--------------------------------------------------------------
-terraform {
-  required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-    }
-  }
-  required_version = ">= 0.13"
-}
-provider azurerm {
-  version         = "~> 2.12"
-  features        {}
-
-  tenant_id       = var.tenant_id
-  subscription_id = var.subscription_id
-  client_id       = var.tf_app_id
-  client_secret   = var.tf_app_secret
+module main_shortloc {
+  source    = "../../../../modules/shortloc"
+  location  = var.main_location
 }
 locals {
-  # Dates formatted
-  now = timestamp()
-  nowUTC = formatdate("YYYY-MM-DD hh:mm ZZZ", local.now) # 2020-06-16 14:44 UTC
-  nowFormatted = "${formatdate("YYYY-MM-DD", local.now)}T${formatdate("hh:mm:ss", local.now)}Z" # "2029-01-01T01:01:01Z"
-  in3years = timeadd(local.now, "26280h")
-  in3yFormatted = "${formatdate("YYYY-MM-DD", local.in3years)}T${formatdate("hh:mm:ss", local.in3years)}Z" # "2029-01-01T01:01:01Z"
-
-  # Tags values
-  tf_plan   = "/tf-plans/1-hub/4-networking"
-
-  base_tags = "${map(
-    "BuiltBy", "Terraform",
-    "TfPlan", "${local.tf_plan}/main_hub-networking.tf",
-    "TfValues", "${local.tf_values}/",
-    "TfState", "${local.tf_state}",
-    "BuiltOn","${local.nowUTC}",
-    "InitiatedBy", "User",
-  )}"
-
-  # Location short for Main location
-  shortl_main_location  = lookup({
-      canadacentral   = "cac", 
-      canadaeast      = "cae",
-      eastus          = "use" },
-    lower(var.main_location), "")
+  # Plan Tag value
+  tf_plan   = "/tf-plans/1-hub/4-networking/main_hub-networking.tf"
 
   # Process Cert file to fit VnetGateway requirement
-  file_data         = file(var.p2srootcert_file_path)
+  file_data         = file(var.p2s_ca_cert_file_path)
   file_lessline1    = replace(local.file_data,"-----BEGIN CERTIFICATE-----","")
   file_lesslastline = replace(local.file_lessline1,"-----END CERTIFICATE-----","")
   cert_data         = chomp(local.file_lesslastline)
-  split_cert_path   = split("\\", var.p2srootcert_file_path)
+  split_cert_path   = split("\\", var.p2s_ca_cert_file_path)
   cert_name         = local.split_cert_path[length(local.split_cert_path)-1]
 }
 
@@ -98,9 +64,7 @@ resource azurerm_resource_group hub_vnet_rg {
   name        = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vnet_base_name}")
   location    = var.main_location
 
-  tags = merge(local.base_tags, "${map(
-    "RefreshedOn", "${local.nowUTC}",
-  )}")
+  tags = local.base_tags
   lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 #   / VNet
@@ -111,7 +75,7 @@ resource azurerm_virtual_network hub_vnet {
   address_space       = [ var.hub_vnet_prefix ]
 
   tags = local.base_tags
-  lifecycle { ignore_changes = [ tags ] }
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 
 #--------------------------------------------------------------
@@ -119,7 +83,7 @@ resource azurerm_virtual_network hub_vnet {
 #--------------------------------------------------------------
 #   / VNet Gateway Subnet 
 resource azurerm_subnet vpngw_subnet {
-  count               = var.hub_vnet_deploy_vnetgw ? 1 : 0
+  count                   = var.hub_vnet_deploy_vnetgw ? 1 : 0
 
   name                    = "GatewaySubnet"         # Hardcoded requirement for VNetGateway ipconfiguration
   resource_group_name     = azurerm_resource_group.hub_vnet_rg.name
@@ -136,10 +100,10 @@ resource azurerm_public_ip vpngw_pip {
   allocation_method   = "Dynamic"
 
   tags = local.base_tags
-  lifecycle { ignore_changes = [ tags ] }
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
-#   / VPN Gateway P2S (Basic for SSTP, VpnGw1 for IKEv2/OpenVPN)
-resource azurerm_virtual_network_gateway hubp2svpn_vpnvgw {
+#   / VPN Gateway P2S (Basic to use SSTP, VpnGw1 to use IKEv2/OpenVPN)
+resource azurerm_virtual_network_gateway hub_vpngw {
   count               = var.hub_vnet_deploy_vnetgw ? 1 : 0
 
   name                = lower("vgw-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vnet_base_name}")
@@ -150,7 +114,7 @@ resource azurerm_virtual_network_gateway hubp2svpn_vpnvgw {
   vpn_type        = "RouteBased"
   active_active   = false
   enable_bgp      = false
-  sku             = "Basic"  # or "VpnGw1"
+  sku             = "Basic"  # Enum: Basic | VpnGw1
   generation      = "Generation1"
 
   ip_configuration {
@@ -176,14 +140,14 @@ resource azurerm_virtual_network_gateway hubp2svpn_vpnvgw {
   }
 
   tags = local.base_tags
-  lifecycle { ignore_changes = [ tags, ] }
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 
 #--------------------------------------------------------------
 #   Hub Networking / Azure Firewall
 #--------------------------------------------------------------
 #   / AzureFirewall Subnet
-resource azurerm_subnet az_fw_subnet {
+resource azurerm_subnet azfw_subnet {
   count                   = var.hub_vnet_deploy_azfw ? 1 : 0
 
   name                    = "AzureFirewallSubnet"                               # Hardcoded requirement for Azure Firewall ipconfiguration
@@ -202,7 +166,7 @@ resource azurerm_public_ip azfw_pip {
   allocation_method   = "Static"
 
   tags = local.base_tags
-  lifecycle { ignore_changes = [ tags, ] }
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 #   /  Azure Firewall
 resource azurerm_firewall hub_azfw {
@@ -213,9 +177,9 @@ resource azurerm_firewall hub_azfw {
   resource_group_name = azurerm_resource_group.hub_vnet_rg.name
   ip_configuration {
     name                 = "AzFwPublicIpConfig"
-    subnet_id            = azurerm_subnet.az_fw_subnet[0].id
+    subnet_id            = azurerm_subnet.azfw_subnet[0].id
     public_ip_address_id = azurerm_public_ip.azfw_pip[0].id
   }
   tags = local.base_tags
-  lifecycle { ignore_changes = [ tags, ] }
+  lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
