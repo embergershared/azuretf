@@ -20,8 +20,8 @@ The following table lists configurable parameters of the ```akv2k8s-inject``` ch
 | keyvaultObjectName| Name of the Key Vault object to use.| Yes | None|
 | k8sSecretName | Name of the Kubernetes secret to create. | Yes | None |
 | keyvaultObjectType| Type of the Key Vault object to use. Possible values are: ```key``` / ```secret``` / ```certificate```.     | No | ```secret``` |
-| keyType | Describe of the Opaque to create is of 1 value or multiple value. Every value, except ```mono``` will create a multiple ```Opaque``` secret. | No | ```mono``` |
+| keyType | Describe of the Opaque to create is of 1 value or multiple value. Any value except ```mono``` will create a multiple ```Opaque keys``` secret. | No | ```mono``` |
 | secretKey | Key in the Kubernetes Opaque secret that will reference the value (value being stored in base64 --code format) | No | ```secret-key``` |
-| contentType| If the keyType **is not** ```mono``` then the type of contentType will be used to deserialize the key/pairs. Allowed values are ```application/x-json``` or ```application/x-yaml```. If keyType is ```mono```, contentType is ignored. | No | ```application/x-json``` |
+| contentType| If the keyType **is not** ```mono``` then the declared contentType will be used to deserialize the key/pair from the Key Vault secret's value. Allowed types are ```JSON``` and ```YAML```. So contentType allowed values are either ```application/x-json``` or ```application/x-yaml```. If keyType is ```mono```, contentType is ignored. | No | ```application/x-json``` |
 
 **Note**: The AKVS object created will have the name of the Helm chart release that created it.
