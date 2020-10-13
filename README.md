@@ -105,7 +105,7 @@ To get started with the provided plans:
 1. Create an Azure Service Principal (Portal, azure CLI, azure PowerShell, etc.) that Terraform will use to create and manage Azure resources,
 2. Note the following data: *TenantId*, *SubscriptionId*, *AppId*, *AppSecret*,
 3. Give this Service Principal the appropriate permissions (usually Contributor on a ubscription),
-4. Fill-in *TenantId*, *SubscriptionId*, *AppId* values in the file ``\subscriptions\demo\demo_tfspn.json```
+4. Fill-in *TenantId*, *SubscriptionId*, *AppId* values in the file ```\subscriptions\demo\demo_tfspn.json```
 5. Modify the other values in ```demo_tfspn.json``` to your context,
 6. Fill-in *AppSecret* value in the file ```\subscriptions\demo\demo_tfspn_secret.json```
 7. Check that the file ```demo_tfspn_secret.json``` will not be checked-in your repo,
