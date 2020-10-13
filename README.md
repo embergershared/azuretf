@@ -61,19 +61,27 @@ Execute the script with the Plan and Values folders as parameters:
 
 A typical output will look like this:
 ```
-Starting "tfplan.ps1" with parameters: Command="Execute", Main=".\1-hub\3-sharedsvc\", Values="..\subscriptions\demo\1-hub\3-sharedsvc\"
-Plan   path is: \GitHub\azuretf\tf-plans\1-hub\3-sharedsvc\
-Values path is: \GitHub\azuretf\subscriptions\demo\1-hub\3-sharedsvc\
+===================================================================================================
+>>> Started tfplan.ps1 script.
+Parameters    : Command="AutoApply", Plan=".\1-hub\5-jumpboxes\", Values="..\subscriptions\msdn\1-hub\5-jumpboxes\"
+Plan   path is: \GitHub\azuretf\tf-plans\1-hub\5-jumpboxes\
+Values path is: \GitHub\azuretf\subscriptions\msdn\1-hub\5-jumpboxes\
+>>> Sourcing files & values...
 Copied 3 "srcd-" files in Values Path.
 Sourcing Variables values from Terraform Variables files names (variables_).
 Processed 3 JSON files and 12 variables.
-Executing Terraform...
-        >>> Terraform messages and processing <<<
-Press Enter to finish script...
-Finished Terraform.
-Removed 7 "Env:TF_VAR_*" Environment variables.
+>>> Executing Terraform...
+Acquiring state lock. This may take a few moments...
+random_pet.win_admin_user[0]: Refreshing state... [id=magical-tadpole]
+random_password.win_admin_pwd[0]: Refreshing state... [id=none]
+........
+Apply complete! Resources: 0 added, 5 changed, 0 destroyed.
+>>> Finished Terraform.
+>>> Removing files & values...
+Removed 12 variables from "Env:".
 Deleted 3 "srcd-" files from Values Path.
-Finished "tfplan.ps1" script
+>>> Finished tfplan.ps1 script.
+===================================================================================================
 ```
 
 ## Parameters
