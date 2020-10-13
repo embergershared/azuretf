@@ -3,13 +3,6 @@ provider random {
 }
 
 locals {
-  # Dates formatted
-  now             = timestamp()
-  nowUTC          = formatdate("YYYY-MM-DD hh:mm ZZZ", local.now) # 2020-06-16 14:44 UTC
-  nowFormatted    = "${formatdate("YYYY-MM-DD", local.now)}T${formatdate("hh:mm:ss", local.now)}Z" # "2029-01-01T01:01:01Z"
-  in3years        = timeadd(local.now, "26280h")
-  in3yFormatted   = "${formatdate("YYYY-MM-DD", local.in3years)}T${formatdate("hh:mm:ss", local.in3years)}Z" # "2029-01-01T01:01:01Z"
-
   module_tags = merge(var.base_tags, "${map(
     "file-encoding", "utf-8",
     "TfModule", "/modules/az-sp/main.tf",
@@ -56,7 +49,7 @@ resource azurerm_key_vault_secret azsp_appid_secret {
   key_vault_id    = var.kv_id
   content_type    = azuread_application.azsp_app[0].name
   expiration_date = azuread_application_password.azsp_app_pwd[0].end_date
-  not_before_date = local.nowFormatted
+  not_before_date = local.nowUTCFormatted
 
   value           = jsonencode({
                       "sp-appname"    = azuread_application.azsp_app[0].name,
@@ -64,6 +57,8 @@ resource azurerm_key_vault_secret azsp_appid_secret {
                       "sp-appsecret"  = azuread_application_password.azsp_app_pwd[0].value,
                       "sp-objid"      = azuread_service_principal.azsp_sp[0].object_id})
 
-  tags      = local.module_tags
-  lifecycle { ignore_changes  = [ tags, not_before_date, expiration_date ] }
+  tags = merge(local.module_tags, "${map(
+    "file-encoding", "utf-8",
+  )}")
+  lifecycle { ignore_changes  = [ tags["BuiltOn"], ] }
 }

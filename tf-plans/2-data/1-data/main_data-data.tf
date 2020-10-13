@@ -187,18 +187,17 @@ resource azurerm_storage_share aks_azfile {
 #--------------------------------------------------------------
 #   / Storage Account K8S secret for AKS clusters' use
 resource azurerm_key_vault_secret azfs_secret {
-  name         = "${var.subs_nickname}-${local.shortl_main_location}-data-${var.data_env}-azvolume-k8ssecret"
-  value        = jsonencode({
-                  "azurestorageaccountname" = azurerm_storage_account.data_azfiles_st.name,
-                  "azurestorageaccountkey"  = azurerm_storage_account.data_azfiles_st.primary_access_key})
-  key_vault_id = data.azurerm_key_vault.sharedsvc_kv.id
+  name            = "${var.subs_nickname}-${local.shortl_main_location}-data-${var.data_env}-azvolume-k8ssecret"
+  key_vault_id    = data.azurerm_key_vault.sharedsvc_kv.id
+  not_before_date = local.nowUTCFormatted
+
+  value           = jsonencode({
+                      "azurestorageaccountname" = azurerm_storage_account.data_azfiles_st.name,
+                      "azurestorageaccountkey"  = azurerm_storage_account.data_azfiles_st.primary_access_key})
 
   tags = merge(local.base_tags, "${map(
     "file-encoding", "utf-8",
   )}")
-  lifecycle { ignore_changes  = [
-    tags["BuiltOn"],
-    not_before_date,
-    ] }
+  lifecycle { ignore_changes  = [ tags["BuiltOn"], ] }
 }
 #*/

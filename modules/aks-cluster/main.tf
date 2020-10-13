@@ -125,9 +125,16 @@ resource tls_private_key ssh_key {
 }
 #   / Store Private Key in Key Vault
 resource azurerm_key_vault_secret ssh_privpem_secret {
-  name         = lower("aks-${local.shortl_cluster_location}-${var.subs_nickname}-${var.cluster_name}-ssh-privkey-pem")
-  value        = tls_private_key.ssh_key.private_key_pem
-  key_vault_id = var.secrets_kv_id
+  name            = lower("aks-${local.shortl_cluster_location}-${var.subs_nickname}-${var.cluster_name}-ssh-privkey-pem")
+  key_vault_id    = var.secrets_kv_id
+  not_before_date = local.nowUTCFormatted
+
+  value           = tls_private_key.ssh_key.private_key_pem
+
+  tags = merge(local.module_tags, "${map(
+    "file-encoding", "utf-8",
+  )}")
+  lifecycle { ignore_changes  = [ tags["BuiltOn"], ] }
 }
 
 #--------------------------------------------------------------

@@ -67,6 +67,7 @@ locals {
   # Timezone based
   TZtime                = timeadd(local.now, local.UTC_to_TZ)
   nowTZ                 = "${formatdate("YYYY-MM-DD hh:mm", local.TZtime)} ${local.TZ_suffix}" # 2020-06-16 14:44 EST
+  nowTZFormatted        = "${formatdate("YYYY-MM-DD", local.TZtime)}T${formatdate("hh:mm:ss", local.now)}Z" # "2029-01-01T01:01:01Z"
   in3yearsTZ            = timeadd(local.TZtime, "26280h")
 
 

@@ -11,7 +11,7 @@
 # Created by    : Emmanuel
 # Last Modified : 2020-10-09
 # Last Modif by : Emmanuel
-# Modif desc.   : Rewired to connect akv2k8s to out of sub KV
+# Modif desc.   : Rewiring to connect akv2k8s to out of sub KV
 
 #--------------------------------------------------------------
 #   Plan's Locals

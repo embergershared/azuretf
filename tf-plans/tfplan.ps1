@@ -39,9 +39,14 @@
 #   Script parameters inputs
 #--------------------------------------------------------------
 param ([string] $PlanTfPath, [string] $ValuesTfPath)
+
+Write-Host
+Write-Host
+
 $extSeparator = "==================================================================================================="
 $stepsSeparator = ">>> "
 Write-Host $extSeparator
+$scriptName = $MyInvocation.MyCommand.Name
 
 #--------------------------------------------------------------
 #   Processing fixed values
@@ -70,7 +75,7 @@ if($args.Contains("-h")) { $Halt = "true" }
 #   Script Start
 #--------------------------------------------------------------
 Write-Debug "Raw arguments are: $args"
-Write-Host "$($stepsSeparator)Started ""tfplan.ps1"" script."
+Write-Host "$($stepsSeparator)Started $($scriptName) script."
 Write-Host "Parameters    : Command=""$Command"", Plan=""$PlanTfPath"", Values=""$ValuesTfPath"""
 
 #--------------------------------------------------------------
@@ -267,7 +272,6 @@ function SourceJson {
 #   / Execute Terraform
 function ExecuteTerraform {
   Write-Debug "Started  ExecuteTerraform()"
-  Write-Host "$($stepsSeparator)Executing Terraform..."
 
   # Get current location
   Write-Debug "  Current location is: $(Get-location)"
@@ -346,7 +350,6 @@ function ExecuteTerraform {
     Write-Debug "  Popped back to: $(Get-Location)"
   }
   
-  Write-Host "$($stepsSeparator)Finished Terraform."
   Write-Debug "Finished ExecuteTerraform()"
 }
 function TerraformInit {
@@ -472,11 +475,18 @@ function DeleteCopiedFilesInValuesTfPath {
 #--------------------------------------------------------------
 BuildPlanTfPath($PlanTfPath)
 BuildValuesTfPath($ValuesTfPath)
+
+Write-Host "$($stepsSeparator)Sourcing files & values..."
 CopyFilesInValuesTfPath
 SourceValuesInEnvVars
+
+Write-Host "$($stepsSeparator)Executing Terraform..."
 ExecuteTerraform             # Some commands are "Execute"& "Init" specific
+Write-Host "$($stepsSeparator)Finished Terraform."
+
 if($CleanAtEnd -eq "true")
 {
+  Write-Host "$($stepsSeparator)Removing files & values..."
   #ClearValuesInEnvVars
   ClearAllEnvTfVars
   DeleteCopiedFilesInValuesTfPath
@@ -485,5 +495,8 @@ if($CleanAtEnd -eq "true")
 #--------------------------------------------------------------
 #   Script End
 #--------------------------------------------------------------
-Write-Host "Finished ""tfplan.ps1"" script."
+Write-Host "$($stepsSeparator)Finished $($scriptName) script."
 Write-Host $extSeparator
+
+Write-Host
+Write-Host

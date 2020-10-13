@@ -127,11 +127,6 @@ data azurerm_key_vault_secret data_sub_tf_tenantid {
   key_vault_id  = var.aks_sub_kv_id
   name          = var.data_sub_tfsp_tenantid_kvsecret
 }
-# #   / Service Principal Subscription to access Data subscription
-# data azurerm_key_vault_secret data_sub_tf_subid {
-#   key_vault_id  = var.aks_sub_kv_id
-#   name          = var.data_sub_tfsp_subid_kvsecret
-# }
 #   / Service Principal Id to access Data subscription
 data azurerm_key_vault_secret data_sub_tf_appid {
   key_vault_id  = var.aks_sub_kv_id
