@@ -32,7 +32,6 @@ override.tf.json
 # example: *tfplan*
 **/resources/*
 tf-plans/1-hub/6-appgw/*
-tf-plans/3-aks/Aks_Full_Deploy.ps1
+tf-plans/3-aks/*.ps1
 tf-plans/3-aks/6-k8sapps/*
 tf-plans/5-perso/*
-tf-plans/3-aks/*.ps1
