@@ -65,7 +65,7 @@ A typical output will look like this:
 >>> Started tfplan.ps1 script.
 Parameters    : Command="AutoApply", Plan=".\1-hub\5-jumpboxes\", Values="..\subscriptions\demo\1-hub\5-jumpboxes\"
 Plan   path is: \GitHub\azuretf\tf-plans\1-hub\5-jumpboxes\
-Values path is: \GitHub\azuretf\subscriptions\msdn\1-hub\5-jumpboxes\
+Values path is: \GitHub\azuretf\subscriptions\demo\1-hub\5-jumpboxes\
 >>> Sourcing files & values...
 Copied 3 "srcd-" files in Values Path.
 Sourcing Variables values from Terraform Variables files names (variables_).
