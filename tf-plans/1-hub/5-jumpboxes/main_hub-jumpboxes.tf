@@ -27,7 +27,7 @@
 #--------------------------------------------------------------
 #   Plan's Locals
 #--------------------------------------------------------------
-module main_shortloc {
+module main_loc {
   source    = "../../../../modules/shortloc"
   location  = var.main_location
 }
@@ -44,20 +44,26 @@ provider random {
 #--------------------------------------------------------------
 #   / Hub networking Resource Group
 data azurerm_resource_group hub_vnet_rg {
-  name        = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vnet_base_name}")
+  name        = lower("rg-${module.main_loc.code}-${var.subs_nickname}-${var.hub_vnet_base_name}")
 }
 #   / Hub networking VNet
 data azurerm_virtual_network hub_vnet {
-  name                = lower("vnet-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vnet_base_name}")
+  name                = lower("vnet-${module.main_loc.code}-${var.subs_nickname}-${var.hub_vnet_base_name}")
   resource_group_name = data.azurerm_resource_group.hub_vnet_rg.name
+}
+#   / Hub networking VNet / Jumpboxes subnet
+data azurerm_subnet jumpboxes_subnet {
+  name                  = "snet-jumpboxes"
+  virtual_network_name  = data.azurerm_virtual_network.hub_vnet.name
+  resource_group_name   = data.azurerm_resource_group.hub_vnet_rg.name
 }
 #   / Shared Services Resource Group
 data azurerm_resource_group sharedsvc_rg {
-  name        = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.sharedsvc_rg_name}")
+  name        = lower("rg-${module.main_loc.code}-${var.subs_nickname}-${var.sharedsvc_rg_name}")
 }
-#   / Shared Key Vault
+#   / Hub Subscription Main Key Vault
 data azurerm_key_vault sharedsvc_kv {
-  name                            = lower("kv-${local.shortl_main_location}-${var.subs_nickname}-${var.sharedsvc_kv_suffix}")
+  name                            = lower("kv-${module.main_loc.code}-${var.subs_nickname}-${var.sharedsvc_kv_suffix}")
   resource_group_name             = data.azurerm_resource_group.sharedsvc_rg.name
 }
 
@@ -66,8 +72,8 @@ data azurerm_key_vault sharedsvc_kv {
 #--------------------------------------------------------------
 #   / Jumpboxes Resource Group
 resource azurerm_resource_group jumpboxes_rg {
-  name        = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vms_base_name}")
-  location    = var.main_location
+  name        = lower("rg-${module.main_loc.code}-${var.subs_nickname}-${var.hub_vms_base_name}")
+  location    = module.main_loc.location
 
   tags = local.base_tags
   lifecycle { ignore_changes = [tags["BuiltOn"]] }
@@ -76,7 +82,7 @@ resource azurerm_resource_group jumpboxes_rg {
 resource azurerm_network_security_group jumpboxes_subnet_nsg {
   count                   = var.deploy_win_vm ? 1 : 0
 
-  name                    = lower("nsg-${local.shortl_main_location}-${var.subs_nickname}-snet-jumpboxes")
+  name                    = lower("nsg-${module.main_loc.code}-${var.subs_nickname}-snet-jumpboxes")
 
   resource_group_name     = azurerm_resource_group.jumpboxes_rg.name
   location                = azurerm_resource_group.jumpboxes_rg.location
@@ -85,58 +91,30 @@ resource azurerm_network_security_group jumpboxes_subnet_nsg {
   lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 #   / VMs NSG Network Security Rules
-resource azurerm_network_security_rule In_Allow_1PublicIp_WinVm1_Rdp3389 {
-  count                       = (var.deploy_win_vm && var.win_vm_enable_publicip && var.win_vm_allowed_internetip_to_rdp != null) ? 1 : 0
+resource azurerm_network_security_rule IBA_Tcp3389_PublicIps_to_WinVm1 {
+  count                       = (var.deploy_win_vm && var.win_vm_enable_publicip && var.public_internet_ips_to_allow != null) ? length(var.public_internet_ips_to_allow) : 0
   depends_on                  = [ azurerm_network_interface.win_vm1_nic, azurerm_windows_virtual_machine.win_vm1 ] # Public IP being "Dynamic", it needs to be attached to get an IP address
 
   resource_group_name         = azurerm_network_security_group.jumpboxes_subnet_nsg[0].resource_group_name
   network_security_group_name = azurerm_network_security_group.jumpboxes_subnet_nsg[0].name
   
-  name                        = "In-Allow-1PublicIp-to-winvm1-Rdp3389"
-  priority                    = 1050
+  name                        = "IBA-Tcp3389-PublicIp${count.index}-to-winvm1"
+  priority                    = 1100
   direction                   = "Inbound"
   access                      = "Allow"
   protocol                    = "TCP"
   
-  source_address_prefix       = "${var.win_vm_allowed_internetip_to_rdp}/32"
+  source_address_prefix       = "${var.public_internet_ips_to_allow[count.index]}/32"
   source_port_range           = "*"
   
   destination_address_prefix  = azurerm_network_interface.win_vm1_nic[0].ip_configuration[0].private_ip_address   #azurerm_subnet.jumpboxes_subnet.address_prefixes[0]
   destination_port_range      = "3389"
-}
-resource azurerm_network_security_rule In_Allow_Internet_WinVm1_Rdp3389 {
-  count                       = (var.deploy_win_vm && var.win_vm_enable_publicip && var.win_vm_allowed_internetip_to_rdp == null) ? 1 : 0
-  depends_on                  = [ azurerm_network_interface.win_vm1_nic[0], azurerm_windows_virtual_machine.win_vm1[0] ] # Public IP being "Dynamic", it needs to be attached to get an IP address
-
-  resource_group_name         = azurerm_network_security_group.jumpboxes_subnet_nsg[0].resource_group_name
-  network_security_group_name = azurerm_network_security_group.jumpboxes_subnet_nsg[0].name
-  
-  name                        = "In-Allow-Internet-to-winvm1-Rdp3389"
-  priority                    = 1055
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "TCP"
-  
-  source_address_prefix       = "Internet" # Warning!: "Internet" will open it to all internet
-  source_port_range           = "*"
-  
-  destination_address_prefix  = azurerm_network_interface.win_vm1_nic[0].ip_configuration[0].private_ip_address   #azurerm_subnet.jumpboxes_subnet.address_prefixes[0]
-  destination_port_range      = "3389"
-}
-#   / VMs' Subnet
-resource azurerm_subnet jumpboxes_subnet {
-  count                   = var.deploy_win_vm ? 1 : 0
-
-  name                    = "snet-jumpboxes"
-  resource_group_name     = data.azurerm_resource_group.hub_vnet_rg.name
-  virtual_network_name    = data.azurerm_virtual_network.hub_vnet.name
-  address_prefixes        = [ replace(var.hub_vnet_prefix, "0/24", "0/27"), ]
 }
 #   / VMs' Subnet NSG association
 resource azurerm_subnet_network_security_group_association jumpboxes_subnet_to_nsg_association {
   count                       = var.deploy_win_vm ? 1 : 0
 
-  subnet_id                   = azurerm_subnet.jumpboxes_subnet[0].id
+  subnet_id                   = data.azurerm_subnet.jumpboxes_subnet.id
   network_security_group_id   = azurerm_network_security_group.jumpboxes_subnet_nsg[0].id
 }
 
@@ -145,7 +123,7 @@ resource azurerm_subnet_network_security_group_association jumpboxes_subnet_to_n
 #--------------------------------------------------------------
 #   / Data managed disk
 resource azurerm_managed_disk win_data_disk {
-  name                  = "disk-${local.shortl_main_location}-${var.subs_nickname}-win-vm-data"
+  name                  = "disk-${module.main_loc.code}-${var.subs_nickname}-win-vm-data"
   resource_group_name   = azurerm_resource_group.jumpboxes_rg.name
   location              = azurerm_resource_group.jumpboxes_rg.location
 
@@ -164,13 +142,13 @@ resource azurerm_managed_disk win_data_disk {
 resource azurerm_network_interface win_vm1_nic {
   count               = var.deploy_win_vm ? 1 : 0
 
-  name                = "nic-${local.shortl_main_location}-${var.subs_nickname}-win-vm1-${var.win_vm_enable_publicip ? "privpub" : "private"}"
+  name                = "nic-${module.main_loc.code}-${var.subs_nickname}-win-vm1-${var.win_vm_enable_publicip ? "privpub" : "private"}"
   resource_group_name = azurerm_resource_group.jumpboxes_rg.name
   location            = azurerm_resource_group.jumpboxes_rg.location
 
   ip_configuration {
     name                          = "ipconf-nicwinvm1priv-to-jumpboxessnet"
-    subnet_id                     = azurerm_subnet.jumpboxes_subnet[0].id
+    subnet_id                     = data.azurerm_subnet.jumpboxes_subnet.id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = var.win_vm_enable_publicip ? azurerm_public_ip.win_vm1_pip[0].id : null
   }
@@ -179,7 +157,7 @@ resource azurerm_network_interface win_vm1_nic {
 resource azurerm_public_ip win_vm1_pip {
   count               = (var.deploy_win_vm && var.win_vm_enable_publicip) ? 1 : 0
 
-  name                = "pip-${local.shortl_main_location}-${var.subs_nickname}-win-vm1"
+  name                = "pip-${module.main_loc.code}-${var.subs_nickname}-win-vm1"
   resource_group_name = azurerm_resource_group.jumpboxes_rg.name
   location            = azurerm_resource_group.jumpboxes_rg.location
   allocation_method   = "Dynamic"
@@ -243,7 +221,7 @@ resource random_password win_admin_pwd {
 resource azurerm_key_vault_secret win_vm_admin {
   count           = var.deploy_win_vm ? 1 : 0
 
-  name            = lower("${var.subs_nickname}-${local.shortl_main_location}-hub-winvm-admin")
+  name            = lower("${var.subs_nickname}-${module.main_loc.code}-hub-winvm-admin")
   key_vault_id    = data.azurerm_key_vault.sharedsvc_kv.id
   not_before_date = local.nowUTCFormatted
 
@@ -264,8 +242,8 @@ resource azurerm_key_vault_secret win_vm_admin {
 resource azurerm_windows_virtual_machine win_vm1 {
   count               = var.deploy_win_vm ? 1 : 0
 
-  name                = "vm-${local.shortl_main_location}-${var.subs_nickname}-win-vm1"
-  computer_name       = "${local.shortl_main_location}${var.subs_nickname}winvm1" # 15 chars max. = NetBIOS: https://docs.microsoft.com/en-us/troubleshoot/windows-server/identity/naming-conventions-for-computer-domain-site-ou#netbios-computer-names
+  name                = "vm-${module.main_loc.code}-${var.subs_nickname}-win-vm1"
+  computer_name       = "${module.main_loc.code}${var.subs_nickname}winvm1" # 15 chars max. = NetBIOS: https://docs.microsoft.com/en-us/troubleshoot/windows-server/identity/naming-conventions-for-computer-domain-site-ou#netbios-computer-names
 
   resource_group_name = azurerm_resource_group.jumpboxes_rg.name
   location            = azurerm_resource_group.jumpboxes_rg.location
@@ -277,7 +255,7 @@ resource azurerm_windows_virtual_machine win_vm1 {
   network_interface_ids = [ azurerm_network_interface.win_vm1_nic[0].id, ]
 
   os_disk {
-    name                    = "disk-${local.shortl_main_location}-${var.subs_nickname}-win-vm1-os"
+    name                    = "disk-${module.main_loc.code}-${var.subs_nickname}-win-vm1-os"
     caching                 = "ReadWrite"
     storage_account_type    = "Standard_LRS"
     #disk_encryption_set_id  = azurerm_disk_encryption_set.win_vms_encrypt.id
@@ -299,7 +277,7 @@ resource azurerm_windows_virtual_machine win_vm1 {
 
   /*
   To install Windows Terminal, run in PowerShell as Admin:
-    Set-ExecutionPolicy Bypass -Scope Process -Force;
+    Set-ExecutionPolicy Bypass -Scope Process -Force
     iex ((New-Object System.Net.WebClient).DownloadString(‘https://chocolatey.org/install.ps1’))
     choco install microsoft-windows-terminal
   */
@@ -341,7 +319,7 @@ resource azurerm_firewall_application_rule_collection Allow_Internet_Out {
 
   rule {
     name = "Allow_Https443_from_Jumpboxes_to_COM_CA_FR"
-    source_addresses = [ azurerm_subnet.jumpboxes_subnet[0].address_prefix , ]
+    source_addresses = [ data.azurerm_subnet.jumpboxes_subnet.address_prefix , ]
     target_fqdns = [ "*.com", "*.ca", "*.fr", ]
     protocol {
       port = "443"
@@ -351,7 +329,7 @@ resource azurerm_firewall_application_rule_collection Allow_Internet_Out {
 
   rule {
     name = "Allow_Http80_from_Jumpboxes_to_COM_CA_FR"
-    source_addresses = [ azurerm_subnet.jumpboxes_subnet[0].address_prefix , ]
+    source_addresses = [ data.azurerm_subnet.jumpboxes_subnet.address_prefix , ]
     target_fqdns = [ "*.com", "*.ca", "*.fr", ]
     protocol {
       port = "80"
@@ -363,13 +341,13 @@ resource azurerm_firewall_application_rule_collection Allow_Internet_Out {
 resource azurerm_route_table vms_subnet_egress_udr {
   count                           = (var.deploy_win_vm && var.hub_vnet_deploy_azfw) ? 1 : 0
 
-  name                            = lower("routetable-${azurerm_subnet.jumpboxes_subnet[0].name}-egress-to-azfw")
+  name                            = lower("routetable-${data.azurerm_subnet.jumpboxes_subnet.name}-egress-to-azfw")
   location                        = azurerm_resource_group.jumpboxes_rg.location
   resource_group_name             = azurerm_resource_group.jumpboxes_rg.name
   disable_bgp_route_propagation   = false
 
   route {
-    name                    = lower("route-${azurerm_subnet.jumpboxes_subnet[0].name}-egress-to-azfw")
+    name                    = lower("route-${data.azurerm_subnet.jumpboxes_subnet.name}-egress-to-azfw")
     address_prefix          = "0.0.0.0/0"
     next_hop_type           = "VirtualAppliance"
     #next_hop_in_ip_address  = data.azurerm_firewall.hub_azfw.ip_configuration[0].private_ip_address
@@ -379,7 +357,7 @@ resource azurerm_route_table vms_subnet_egress_udr {
 resource azurerm_subnet_route_table_association vms_subnet_egress_udr_subnet_association {
   count           = (var.deploy_win_vm && var.hub_vnet_deploy_azfw) ? 1 : 0
 
-  subnet_id       = azurerm_subnet.jumpboxes_subnet[0].id
+  subnet_id       = data.azurerm_subnet.jumpboxes_subnet.id
   route_table_id  = azurerm_route_table.vms_subnet_egress_udr[0].id
 }
 #   / Block Direct Internet Access for the VMs' Subnet at NSG level
@@ -389,13 +367,13 @@ resource azurerm_network_security_rule Out_Allow_VNet {
   resource_group_name         = azurerm_network_security_group.jumpboxes_subnet_nsg[0].resource_group_name
   network_security_group_name = azurerm_network_security_group.jumpboxes_subnet_nsg[0].name
   
-  name                        = "Out-Allow-VNet"
+  name                        = "OBA-AnyAny-JumpboxSnet-VNet"
   priority                    = 1000
   direction                   = "Outbound"
   access                      = "Allow"
   protocol                    = "*"
   
-  source_address_prefixes     = [ azurerm_subnet.jumpboxes_subnet[0].address_prefix , ]
+  source_address_prefixes     = [ data.azurerm_subnet.jumpboxes_subnet.address_prefix , ]
   source_port_range           = "*"
   
   destination_address_prefix  = "VirtualNetwork"
@@ -407,13 +385,13 @@ resource azurerm_network_security_rule Out_Deny_Internet {
   resource_group_name         = azurerm_network_security_group.jumpboxes_subnet_nsg[0].resource_group_name
   network_security_group_name = azurerm_network_security_group.jumpboxes_subnet_nsg[0].name
   
-  name                        = "Out-Deny-DirectInternet"
+  name                        = "OBD-AnyAny-JumpboxSnet-Internet"
   priority                    = 4096
   direction                   = "Outbound"
   access                      = "Deny"
   protocol                    = "*"
   
-  source_address_prefixes     = [ azurerm_subnet.jumpboxes_subnet[0].address_prefix , ]
+  source_address_prefixes     = [ data.azurerm_subnet.jumpboxes_subnet.address_prefix , ]
   source_port_range           = "*"
   
   destination_address_prefix  = "Internet"

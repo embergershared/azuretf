@@ -1,0 +1,22 @@
+{{- if .Values.webhook.podDisruptionBudget.enabled }}
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ template "azure-key-vault-to-kubernetes.fullname" . }}
+  labels:
+    app: {{ template "azure-key-vault-to-kubernetes.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}  
+    component: webhook
+spec:
+  minAvailable: {{ .Values.webhook.podDisruptionBudget.minAvailable }}
+{{- if .Values.webhook.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.webhook.podDisruptionBudget.maxUnavailable }}
+{{- end }}
+  selector:
+    matchLabels:
+      app: {{ template "azure-key-vault-to-kubernetes.name" . }}
+      release: {{ .Release.Name }}
+      component: webhook
+{{- end }}

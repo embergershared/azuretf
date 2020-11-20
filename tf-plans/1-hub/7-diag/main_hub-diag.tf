@@ -21,9 +21,13 @@
 #--------------------------------------------------------------
 #   Plan's Locals
 #--------------------------------------------------------------
-module main_shortloc {
+module main_loc {
   source    = "../../../../modules/shortloc"
   location  = var.main_location
+}
+module secondary_loc {
+  source    = "../../../../modules/shortloc"
+  location  = var.secondary_location
 }
 locals {
   # Plan Tag value
@@ -33,14 +37,19 @@ locals {
 #--------------------------------------------------------------
 #   Data collection of required resources
 #--------------------------------------------------------------
-#   / Diagnostic Storage account
-data azurerm_storage_account logadiag_storacct {
-  name                    = replace(lower("st${local.shortl_main_location}${var.subs_nickname}logsdiag"), "-", "")
-  resource_group_name     = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-logsdiag")
+#   / Main location Diagnostic Storage account
+data azurerm_storage_account mainloc_logdiag_stacct {
+  name                    = replace(lower("st${module.main_loc.code}${var.subs_nickname}logsdiag"), "-", "")
+  resource_group_name     = lower("rg-${module.main_loc.code}-${var.subs_nickname}-hub-logsdiag")
+}
+#   / Secondary location Diagnostic Storage account
+data azurerm_storage_account secondloc_logdiag_stacct {
+  name                    = replace(lower("st${module.secondary_loc.code}${var.subs_nickname}logsdiag"), "-", "")
+  resource_group_name     = lower("rg-${module.main_loc.code}-${var.subs_nickname}-hub-logsdiag")
 }
 #   / Log Analytics Workspace
 data azurerm_resources hub_laws {
-  resource_group_name = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-logsdiag")
+  resource_group_name = lower("rg-${module.main_loc.code}-${var.subs_nickname}-hub-logsdiag")
   type                = "microsoft.operationalinsights/workspaces"
 }
 
@@ -51,8 +60,9 @@ module sharesvc_diag {
   source              = "../../../../modules/diagsettings/hubsharedsvc"
 
   # Shared Services Diag Setting instance specific
-  sharedsvc_rg_name   = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.sharedsvc_rg_name}")
-  stacct_id           = data.azurerm_storage_account.logadiag_storacct.id
+  sharedsvc_rg_name   = lower("rg-${module.main_loc.code}-${var.subs_nickname}-${var.sharedsvc_rg_name}")
+  mainloc_stacct      = data.azurerm_storage_account.mainloc_logdiag_stacct
+  secondloc_stacct    = data.azurerm_storage_account.secondloc_logdiag_stacct
   laws_id             = data.azurerm_resources.hub_laws.resources[0].id
   retention_days      = var.retention_days
 }
@@ -64,10 +74,11 @@ module networking_diag {
   source              = "../../../../modules/diagsettings/hubnetworking"
 
   # Networking Diag Setting instance specific
-  networking_rg_name      = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vnet_base_name}")
+  networking_rg_name      = lower("rg-${module.main_loc.code}-${var.subs_nickname}-${var.hub_vnet_base_name}")
   hub_vnet_deploy_azfw    = var.hub_vnet_deploy_azfw
   hub_vnet_deploy_vnetgw  = var.hub_vnet_deploy_vnetgw
-  stacct_id               = data.azurerm_storage_account.logadiag_storacct.id
+  mainloc_stacct          = data.azurerm_storage_account.mainloc_logdiag_stacct
+  secondloc_stacct        = data.azurerm_storage_account.secondloc_logdiag_stacct
   laws_id                 = data.azurerm_resources.hub_laws.resources[0].id
   retention_days          = var.retention_days
 }
@@ -79,8 +90,10 @@ module jumpboxes_diag {
   source              = "../../../../modules/diagsettings/hubjumpboxes"
 
   # Jumpboxes Diag Setting instance specific
-  jumpboxes_rg_name   = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vms_base_name}")
-  stacct_id           = data.azurerm_storage_account.logadiag_storacct.id
-  laws_id             = data.azurerm_resources.hub_laws.resources[0].id
-  retention_days      = var.retention_days
+  jumpboxes_rg_name       = lower("rg-${module.main_loc.code}-${var.subs_nickname}-${var.hub_vms_base_name}")
+  mainloc_stacct          = data.azurerm_storage_account.mainloc_logdiag_stacct
+  secondloc_stacct        = data.azurerm_storage_account.secondloc_logdiag_stacct
+  laws_id                 = data.azurerm_resources.hub_laws.resources[0].id
+  retention_days          = var.retention_days
 }
+#*/

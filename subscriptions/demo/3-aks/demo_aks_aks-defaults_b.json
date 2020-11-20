@@ -1,0 +1,32 @@
+{
+  "enable_privcluster":               "false",
+  "enable_podsecurpol":               "false",
+  "enable_omsagent":                  "true",
+  "enable_devspaces":                 "false",
+  "enable_kdash":                     "false",
+  "enable_azpolicy":                  "false",
+  "enable_aci":                       "false",
+  "enable_rbac":                      "true",
+  "linx_admin_user":                  "ubuadm",
+  "win_admin_user":                   "winadm",
+  "default_np_name":                  "linp1",          // lowercase alphanumeric characters. linux: 12charmax, win: 6 charmax. https://docs.microsoft.com/en-us/azure/aks/use-multiple-node-pools
+  "default_np_vmsize":                "Standard_B2s",   // "Standard_B2ms" or "Standard_B4ms"
+  "default_np_type":                  "VirtualMachineScaleSets",
+  "default_np_enablenodepubip":       "false",
+  "default_np_osdisksize":            "64",
+  "default_np_enableautoscale":       "false",
+  "default_np_nodecount":             "2",
+  "default_np_maxpods":               "100",
+  "network_plugin":                   "azure",
+  "network_policy":                   "calico",
+  "outbound_type":                    "loadBalancer",
+  "load_balancer_sku":                "Standard",       // To allow compatibility with the AKS Networking PIPs Helm capture from the AKS ALB
+  "load_balancer_managedOutboundIps": "1",
+  "dns_service_ip":                   "10.0.0.10",
+  "service_cidr":                     "10.0.0.0/16",
+  "pod_cidr":                         "",
+  "docker_bridge_cidr":               "172.17.0.1/16",
+  "authorized_ips":                   "",
+  // k8s infra defaults
+  "deploy_ilb":                       "false"
+}

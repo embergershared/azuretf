@@ -1,4 +1,4 @@
-output shortl_cluster_location  { value = local.shortl_cluster_location }
+output shortl_cluster_location  { value = module.aks_loc.code }
 output aks_service_principals   { value = local.aks_principals }
 output aks_cluster_id           { value = azurerm_kubernetes_cluster.aks_cluster.id }
 

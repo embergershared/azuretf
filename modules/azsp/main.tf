@@ -33,7 +33,7 @@ resource azuread_application_password azsp_app_pwd {
 
   application_object_id = azuread_application.azsp_app[0].id
   value                 = random_uuid.azsp_secret[0].result
-  end_date              = local.in3yFormatted # local.in3yFormatted | "2025-01-01T01:01:01Z"
+  end_date              = var.in3yearsUTCFormatted # local.in3yFormatted | "2025-01-01T01:01:01Z"
 
   lifecycle { ignore_changes = [ end_date ] }
 }
@@ -49,7 +49,7 @@ resource azurerm_key_vault_secret azsp_appid_secret {
   key_vault_id    = var.kv_id
   content_type    = azuread_application.azsp_app[0].name
   expiration_date = azuread_application_password.azsp_app_pwd[0].end_date
-  not_before_date = local.nowUTCFormatted
+  not_before_date = var.nowUTCFormatted
 
   value           = jsonencode({
                       "sp-appname"    = azuread_application.azsp_app[0].name,

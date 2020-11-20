@@ -8,7 +8,7 @@ resource azurerm_monitor_diagnostic_setting nics_diag {
 
   name                        = "nic-${count.index}-diagsetting"
   target_resource_id          = data.azurerm_resources.nics_resources.resources[count.index].id
-  storage_account_id          = var.stacct_id
+  storage_account_id          = data.azurerm_resources.nics_resources.resources[count.index].location == var.mainloc_stacct.location ? var.mainloc_stacct.id : var.secondloc_stacct.id
   log_analytics_workspace_id  = var.laws_id
 
   metric {

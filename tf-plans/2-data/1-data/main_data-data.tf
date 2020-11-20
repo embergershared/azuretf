@@ -20,18 +20,15 @@
 #--------------------------------------------------------------
 #   Plan's Locals
 #--------------------------------------------------------------
-module main_shortloc {
-  source    = "../../../../modules/shortloc"
-  location  = var.main_location
-}
 locals {
   # Plan Tag value
   tf_plan   = "/tf-plans/2-data/1-data/main_data-data.tf"
-
-  # Location short suffix for Data Services
-  shortl_data_location  = module.data_shortloc.code
 }
-module data_shortloc {
+module main_loc {
+  source    = "../../../../modules/shortloc"
+  location  = var.main_location
+}
+module data_loc {
   source    = "../../../../modules/shortloc"
   location  = var.data_location
 }
@@ -41,13 +38,13 @@ module data_shortloc {
 #--------------------------------------------------------------
 #   / Diagnostics Storage account
 data azurerm_storage_account stdiag {
-  name                  = replace(lower("st${local.shortl_main_location}${var.subs_nickname}logsdiag"), "-", "")
-  resource_group_name   = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-logsdiag")
+  name                  = replace(lower("st${module.main_loc.code}${var.subs_nickname}logsdiag"), "-", "")
+  resource_group_name   = lower("rg-${module.main_loc.code}-${var.subs_nickname}-hub-logsdiag")
 }
 #   / Shared Services Key Vault
 data azurerm_key_vault sharedsvc_kv {
-  name                  = lower("kv-${local.shortl_main_location}-${var.subs_nickname}-${var.sharedsvc_kv_suffix}")
-  resource_group_name   = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.sharedsvc_rg_name}")
+  name                  = lower("kv-${module.main_loc.code}-${var.subs_nickname}-${var.sharedsvc_kv_suffix}")
+  resource_group_name   = lower("rg-${module.main_loc.code}-${var.subs_nickname}-${var.sharedsvc_rg_name}")
 }
 
 #--------------------------------------------------------------
@@ -67,6 +64,8 @@ module sqlsvr_sp {
   subs_adm_short    = var.subs_adm_short
   sp_naming         = "data-${var.data_env}-sqlsvr"
   rotate_sp_secret  = var.sql_rotate_secret
+  nowUTCFormatted       = local.nowUTCFormatted
+  in3yearsUTCFormatted  = local.in3yearsUTCFormatted
   kv_id             = data.azurerm_key_vault.sharedsvc_kv.id
   base_tags         = local.base_tags
 }
@@ -76,8 +75,8 @@ module sqlsvr_sp {
 #--------------------------------------------------------------
 #   / Resource Group
 resource azurerm_resource_group data_rg {
-  name        = lower("rg-${local.shortl_data_location}-${var.subs_nickname}-data-${var.data_env}")
-  location    = var.data_location
+  name        = lower("rg-${module.data_loc.code}-${var.subs_nickname}-data-${var.data_env}")
+  location    = module.data_loc.location
 
   tags = local.base_tags
   lifecycle { ignore_changes = [tags["BuiltOn"]] }
@@ -86,7 +85,7 @@ resource azurerm_resource_group data_rg {
 resource azurerm_mssql_server sqlsvr_mssql {
   count                         = var.sql_deploy ? 1 : 0
 
-  name                          = lower("sql-${local.shortl_data_location}-${var.subs_nickname}-${var.data_env}")
+  name                          = lower("sql-${module.data_loc.code}-${var.subs_nickname}-${var.data_env}")
   resource_group_name           = azurerm_resource_group.data_rg.name
   location                      = azurerm_resource_group.data_rg.location
   version                       = "12.0"
@@ -163,7 +162,7 @@ resource azurerm_sql_database sql_dbs {
 #--------------------------------------------------------------
 #   / Storage account
 resource azurerm_storage_account data_azfiles_st {
-  name                        = replace(lower("st${local.shortl_data_location}${var.subs_nickname}data${var.data_env}"), "-", "")
+  name                        = replace(lower("st${module.data_loc.code}${var.subs_nickname}data${var.data_env}"), "-", "")
   location                    = azurerm_resource_group.data_rg.location
   resource_group_name         = azurerm_resource_group.data_rg.name
   account_kind                = "StorageV2"
@@ -187,7 +186,7 @@ resource azurerm_storage_share aks_azfile {
 #--------------------------------------------------------------
 #   / Storage Account K8S secret for AKS clusters' use
 resource azurerm_key_vault_secret azfs_secret {
-  name            = "${var.subs_nickname}-${local.shortl_main_location}-data-${var.data_env}-azvolume-k8ssecret"
+  name            = "${var.subs_nickname}-${module.main_loc.code}-data-${var.data_env}-azvolume-k8ssecret"
   key_vault_id    = data.azurerm_key_vault.sharedsvc_kv.id
   not_before_date = local.nowUTCFormatted
 

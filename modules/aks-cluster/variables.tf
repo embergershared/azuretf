@@ -3,7 +3,6 @@
 #--------------------------------------------------------------
 #   / AKS Cluster mandatory
 #--------------------------------------------------------------
-variable calling_folder               {}
 variable cluster_location             {}
 variable aks_vnet_cidr                { description = "/20 address space" }
 variable k8s_version                  { description = "check with: az aks get-versions --location canadacentral --output table"}
@@ -14,7 +13,6 @@ variable aks_sp_appsecret             { default = null }
 variable aks_sp_objid                 { default = null }
 variable admin_group_object_ids       { default = null }
 variable laws_id                      { default = null }
-variable acr_id                       {}
 variable secrets_kv_id                {}
 variable hub_vnet_name                {}
 variable hub_rg_name                  {}

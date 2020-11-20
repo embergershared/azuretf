@@ -8,7 +8,7 @@ resource azurerm_monitor_diagnostic_setting nsgs_diag {
 
   name                        = "${replace(lower(data.azurerm_resources.nsgs_resources.resources[count.index].name), "-", "")}-diagsetting"
   target_resource_id          = data.azurerm_resources.nsgs_resources.resources[count.index].id
-  storage_account_id          = var.stacct_id
+  storage_account_id          = data.azurerm_resources.nsgs_resources.resources[count.index].location == var.mainloc_stacct.location ? var.mainloc_stacct.id : var.secondloc_stacct.id
   log_analytics_workspace_id  = var.laws_id
 
   log {

@@ -1,0 +1,6 @@
+[
+  "var_tfspn.tf",
+  "var_hub-logsdiag.tf",
+  "var_hub-sharedsvc.tf",
+  "var_data-data.tf"
+]

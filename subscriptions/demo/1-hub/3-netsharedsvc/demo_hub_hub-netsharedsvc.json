@@ -1,0 +1,16 @@
+{
+  "hub_vnet_base_name":         "Hub-Networking",
+  "hub_vnet_prefix":            "ABCD/24",
+  "vpn_clients_address_space":  "EFGH/24",
+  "p2s_ca_cert_file_path":      "D:\\RootCertPublicKey.pem",
+  "hub_vnet_deploy_azfw":       "false",
+  "hub_vnet_deploy_vnetgw":     "true",
+  "public_internet_ips_to_allow": "[ \"123.123.123.123\", ]",
+
+  "sharedsvc_rg_name":        "Hub-SharedServices",
+  "sharedsvc_kv_suffix" :     "Hub",
+  "kv_owners":                "{ \"email@hotmail.com\" = \"GUID\", }",
+  "kv_fullaccess":            "{ \"email@hotmail.com\" = \"GUID\", }",
+  "sharedsvc_acr_deploy":     "false",
+  "sharedsvc_acr_suffix":     ""
+}

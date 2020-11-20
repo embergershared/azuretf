@@ -1,0 +1,7 @@
+[
+  "var_tfspn.tf",
+  "var_hub-logsdiag",
+  "var_aks-cluster.tf",
+  "var_aks-defaults.tf",
+  "var_aks-shared.tf"
+]

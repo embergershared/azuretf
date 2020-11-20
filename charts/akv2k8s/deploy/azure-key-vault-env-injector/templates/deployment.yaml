@@ -1,0 +1,225 @@
+{{- $dot := . }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "azure-key-vault-to-kubernetes.fullname" . }}-ca-bundle
+  labels:
+    app: {{ template "azure-key-vault-to-kubernetes.name" . }}-ca-bundle
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    component: ca-bundle
+{{- if .Values.caBundleController.labels }}
+{{ toYaml .Values.caBundleController.labels | indent 4 }}
+{{- end}}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "azure-key-vault-to-kubernetes.name" . }}-ca-bundle
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "azure-key-vault-to-kubernetes.name" . }}-ca-bundle
+        release: {{ .Release.Name }}
+{{- if .Values.caBundleController.podLabels }}
+{{ toYaml .Values.caBundleController.podLabels | indent 8 }}
+{{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/apiservice.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ template "azure-key-vault-to-kubernetes.fullname" . }}
+      containers:
+        - name: ca-bundle-controller
+          image: "{{ .Values.caBundleController.image.repository }}:{{ .Values.caBundleController.image.tag }}"
+          args:
+            - "--cloudconfig={{ .Values.cloudConfig }}"
+            # - "--version={{ .Values.caBundleController.image.tag }}"
+          env:
+          - name: AKV_LABEL_NAME
+            value: {{ .Values.caBundleController.akvLabelName }}
+          - name: AKV_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: AKV_SECRET_NAME
+            value: {{ template "azure-key-vault-to-kubernetes.servingCertificate" . }}
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: CA_FILE
+            value: /var/ca-cert/ca.crt
+          - name: CA_CONFIG_MAP_NAME
+            value: {{ .Values.caBundleController.configMapName }}
+          - name: LOG_LEVEL
+            value: {{ .Values.caBundleController.logLevel | quote }}
+          - name: LOG_FORMAT
+            value: {{ .Values.caBundleController.logFormat | quote }}
+          {{- range $key, $value := .Values.caBundleController.env }}
+          - name: {{ $key }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "azure-key-vault-to-kubernetes.fullname" $dot }}-cabundlecontroller-env
+                key: {{ $key }}
+          {{- end }}
+          volumeMounts:
+          - mountPath: /var/ca-cert
+            name: ca-cert
+          imagePullPolicy: {{ .Values.caBundleController.image.pullPolicy }}
+      volumes:
+      - name: ca-cert
+        secret:
+          defaultMode: 420
+          secretName: {{ template "azure-key-vault-to-kubernetes.servingCertificate" . }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
+  {{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
+  {{- end }}
+  {{- if .Values.affinity }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}
+  {{- end }}
+      {{- if .Values.caBundleController.image.pullSecret }}
+      imagePullSecrets:
+      - name: {{ .Values.caBundleController.image.pullSecret }}
+      {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "azure-key-vault-to-kubernetes.fullname" . }}
+  labels:
+    app: {{ template "azure-key-vault-to-kubernetes.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    component: webhook
+{{- if .Values.webhook.labels }}
+{{ toYaml .Values.webhook.labels | indent 4 }}
+{{- end}}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "azure-key-vault-to-kubernetes.name" . }}
+      release: {{ .Release.Name }}
+      component: webhook
+  template:
+    metadata:
+      labels:
+        app: {{ template "azure-key-vault-to-kubernetes.name" . }}
+        release: {{ .Release.Name }}
+        component: webhook
+{{- if .Values.webhook.podLabels }}
+{{ toYaml .Values.webhook.podLabels | indent 8 }}
+{{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/apiservice.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ template "azure-key-vault-to-kubernetes.fullname" . }}
+      containers:
+        - name: webhook
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args:
+            # - "--version={{ .Values.image.tag }}"
+            - "--versionEnvIage={{ .Values.envImage.tag }}"
+          env:
+          - name: PORT
+            value: {{ .Values.service.internalTlsPort | quote }}
+          - name: RUNNING_INSIDE_AZURE_AKS
+            value: {{ .Values.runningInsideAzureAks | quote }}
+          - name: TLS_CERT_FILE
+            value: /var/serving-cert/tls.crt
+          - name: TLS_PRIVATE_KEY_FILE
+            value: /var/serving-cert/tls.key
+          - name: TLS_CA_FILE
+            value: /var/serving-cert/ca.crt
+          - name: WEBHOOK_AUTH_SERVICE
+            value: {{ template "azure-key-vault-to-kubernetes.fullname" . }}
+          - name: WEBHOOK_AUTH_SERVICE_PORT
+            value: {{ .Values.service.externalTlsPort | quote }}
+          - name: CA_CONFIG_MAP_NAME
+            value: {{ .Values.caBundleController.configMapName }}
+          - name: CUSTOM_AUTH
+            value: {{ .Values.keyVault.customAuth.enabled | quote }}
+          - name: USE_AUTH_SERVICE
+            value: {{ include "azure-key-vault-to-kubernetes.useAuthService" . | quote }}
+          - name: AZUREKEYVAULT_ENV_IMAGE
+            value: {{ .Values.envImage.repository }}:{{ .Values.envImage.tag }}
+          - name: CLOUD_CONFIG_HOST_PATH
+            value: {{ .Values.cloudConfigHostPath }}
+          - name: DOCKER_IMAGE_INSPECTION_TIMEOUT
+            value: {{ .Values.dockerImageInspection.timeout | quote }}
+          - name: DOCKER_IMAGE_INSPECTION_USE_ACS_CREDENTIALS
+            value: {{ .Values.dockerImageInspection.useAksCredentialsWithACS | quote }}
+          - name: LOG_LEVEL
+            value: {{ .Values.webhook.logLevel | quote }}
+          - name: LOG_FORMAT
+            value: {{ .Values.webhook.logFormat | quote }}
+          - name: METRICS_ENABLED
+            value: {{ .Values.metrics.enabled | quote }}
+          {{- range $key, $value := .Values.webhook.env }}
+          - name: {{ $key }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "azure-key-vault-to-kubernetes.fullname" $dot }}-webhook-env
+                key: {{ $key }}
+          {{- end }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+          - name: webhook
+            containerPort: {{ .Values.service.internalTlsPort }}
+          - name: http
+            containerPort: {{ .Values.service.internalHttpPort }}
+          readinessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: {{ .Values.service.internalTlsPort }}
+          volumeMounts:
+          - mountPath: /var/serving-cert
+            name: serving-cert
+          {{- if .Values.runningInsideAzureAks }}
+          - mountPath: /etc/kubernetes/azure.json
+            name: azureconf
+            readOnly: true
+          {{- end }}
+          securityContext:
+            {{- if .Values.webhook.securityContext }}
+{{ toYaml .Values.webhook.securityContext | indent 12 }}
+            {{- end }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+      volumes:
+      - name: serving-cert
+        secret:
+          defaultMode: 420
+          secretName: {{ template "azure-key-vault-to-kubernetes.servingCertificate" . }}
+      {{- if .Values.runningInsideAzureAks }}
+      - name: azureconf
+        hostPath:
+          path: /etc/kubernetes/azure.json
+          type: File
+      {{- end }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
+  {{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
+  {{- end }}
+  {{- if .Values.affinity }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}
+  {{- end }}
+      {{- if .Values.image.pullSecret }}
+      imagePullSecrets:
+      - name: {{ .Values.image.pullSecret }}
+      {{- end }}

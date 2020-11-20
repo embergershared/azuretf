@@ -1,0 +1,20 @@
+cloudConfig: /etc/kubernetes/azure.json
+env: {}
+image:
+  pullPolicy: IfNotPresent
+  repository: spvest/azure-keyvault-controller
+  tag: 1.1.0
+keyVault:
+  customAuth:
+    enabled: false
+  polling:
+    failureAttempts: 5
+    failureInterval: 10m
+    normalInterval: 1m
+labels: {}
+logFormat: fmt
+logLevel: info
+podLabels: {}
+serviceAccount:
+  create: true
+  name: null

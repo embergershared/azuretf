@@ -1,0 +1,10 @@
+variable name                         {}
+variable resource_group_name          {}
+variable location                     {}
+variable tenant_id                    {}
+variable public_internet_ips_to_allow {}
+variable virtual_network_subnet_ids   {}
+variable sharedsvc_kv_owners          {}
+variable sharedsvc_kv_fullaccess      {}
+variable tf_sp_objid                  {}
+variable base_tags                    {}

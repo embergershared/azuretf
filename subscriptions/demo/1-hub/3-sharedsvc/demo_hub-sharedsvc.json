@@ -1,7 +1,0 @@
-{
-  "sharedsvc_rg_name":        "Hub-SharedServices",
-  "sharedsvc_kv_suffix" :     "Hub",
-  "sharedsvc_acr_suffix":     "",
-  "kv_owners":                "{ \"email@hotmail.com\" = \"GUID\", }",
-  "kv_fullaccess":            "{ \"email@hotmail.com\" = \"GUID\", }"
-}
