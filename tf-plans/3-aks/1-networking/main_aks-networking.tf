@@ -21,27 +21,17 @@
 #--------------------------------------------------------------
 #   Plan's Locals
 #--------------------------------------------------------------
-module main_shortloc {
+module main_loc {
   source    = "../../../../modules/shortloc"
   location  = var.main_location
+}
+module secondary_loc {
+  source    = "../../../../modules/shortloc"
+  location  = var.secondary_location
 }
 locals {
   # Plan Tag value
   tf_plan   = "/tf-plans/3-aks/1-networking/main_aks-networking.tf"
-
-  # Location1 short suffixes for AKS Networking
-  shortl_aksnet_location1  = module.aksnet1_shortloc.code
-
-  # Location2 short suffixes for AKS Networking
-  shortl_aksnet_location2  = module.aksnet2_shortloc.code
-}
-module aksnet1_shortloc {
-  source    = "../../../../modules/shortloc"
-  location  = var.aksnet_location1
-}
-module aksnet2_shortloc {
-  source    = "../../../../modules/shortloc"
-  location  = var.aksnet_location2
 }
 
 #--------------------------------------------------------------
@@ -66,15 +56,15 @@ module aksnet2_shortloc {
 #--------------------------------------------------------------
 #   / Location 1 Resource Group
 resource azurerm_resource_group loc1_aksnet_rg {
-  name        = lower("rg-${local.shortl_aksnet_location1}-${var.subs_nickname}-aks-networking")
-  location    = var.aksnet_location1
+  name        = lower("rg-${module.main_loc.code}-${var.subs_nickname}-aks-networking")
+  location    = module.main_loc.location
 
   tags = local.base_tags
   lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 #   / Azure Traffic Manager Level 1 (Priority)
 resource azurerm_traffic_manager_profile level1_atf_prof {
-  name                   = "atf-${local.shortl_aksnet_location1}-${var.subs_nickname}-level1"
+  name                   = "atf-${module.main_loc.code}-${var.subs_nickname}-level1"
   resource_group_name    = azurerm_resource_group.loc1_aksnet_rg.name
   traffic_routing_method = "Priority"
 
@@ -84,12 +74,16 @@ resource azurerm_traffic_manager_profile level1_atf_prof {
   }
 
   monitor_config {
-    protocol                     = "http"
-    port                         = 80
-    path                         = "/healthz"
-    interval_in_seconds          = 10         # = probing interval Enum: 10 | 30
-    timeout_in_seconds           = 8          # = probe timeout / Range [5-10]
-    tolerated_number_of_failures = 2
+    protocol                     = "HTTPS"
+    port                         = 443
+    path                         = "/"
+    interval_in_seconds          = 30         # = probing interval Enum: 10 | 30
+    timeout_in_seconds           = 10         # = probe timeout / Range [5-10]
+    tolerated_number_of_failures = 3
+    custom_header {
+      name  = "host"
+      value = "www.thelightcircle.com"
+    }
   }
 
   tags = local.base_tags
@@ -97,9 +91,9 @@ resource azurerm_traffic_manager_profile level1_atf_prof {
 }
 #   / Location 1 Public IP 1
 resource azurerm_public_ip loc1_ing1_pip {
-  name                = lower("pip-${local.shortl_aksnet_location1}-${var.subs_nickname}-${var.piping1_name}")
+  name                = lower("pip-${module.main_loc.code}-${var.subs_nickname}-${var.piping1_name}")
   resource_group_name = azurerm_resource_group.loc1_aksnet_rg.name
-  location            = var.aksnet_location1
+  location            = module.main_loc.location
   sku                 = var.pip_sku
   allocation_method   = var.pip_alloc_method
   domain_name_label   = lower("pip${var.subs_nickname}${var.piping1_name}")
@@ -120,9 +114,9 @@ resource azurerm_traffic_manager_endpoint loc1_ing1_atf_endpoint {
 
 #   / Location 1 Public IP 2
 resource azurerm_public_ip loc1_ing2_pip {
-  name                = lower("pip-${local.shortl_aksnet_location1}-${var.subs_nickname}-${var.piping2_name}")
+  name                = lower("pip-${module.main_loc.code}-${var.subs_nickname}-${var.piping2_name}")
   resource_group_name = azurerm_resource_group.loc1_aksnet_rg.name
-  location            = var.aksnet_location1
+  location            = module.main_loc.location
   sku                 = var.pip_sku
   allocation_method   = var.pip_alloc_method
   domain_name_label   = lower("pip${var.subs_nickname}${var.piping2_name}")
@@ -142,19 +136,19 @@ resource azurerm_traffic_manager_endpoint loc1_ing2_atf_endpoint {
 }
 
 #--------------------------------------------------------------
-#   AKS Networking / Location 2 (Fall back)
+#   AKS Networking / Location 2 (Secondary)
 #--------------------------------------------------------------
 #   / Location 2 Resource Group
 resource azurerm_resource_group loc2_aksnet_rg {
-  name        = lower("rg-${local.shortl_aksnet_location2}-${var.subs_nickname}-aks-networking")
-  location    = var.aksnet_location2
+  name        = lower("rg-${module.secondary_loc.code}-${var.subs_nickname}-aks-networking")
+  location    = module.secondary_loc.location
 
   tags = local.base_tags
   lifecycle { ignore_changes = [tags["BuiltOn"]] }
 }
 #   / Location 2 Public IP 1
 resource azurerm_public_ip loc2_ing1_pip {
-  name                = lower("pip-${local.shortl_aksnet_location2}-${var.subs_nickname}-${var.piping1_name}")
+  name                = lower("pip-${module.secondary_loc.code}-${var.subs_nickname}-${var.piping1_name}")
   resource_group_name = azurerm_resource_group.loc2_aksnet_rg.name
   location            = azurerm_resource_group.loc2_aksnet_rg.location
   sku                 = var.pip_sku
@@ -177,7 +171,7 @@ resource azurerm_traffic_manager_endpoint loc2_ing1_atf_endpoint {
 
 #   / Location 2 Public IP 2
 resource azurerm_public_ip loc2_ing2_pip {
-  name                = lower("pip-${local.shortl_aksnet_location2}-${var.subs_nickname}-${var.piping2_name}")
+  name                = lower("pip-${module.secondary_loc.code}-${var.subs_nickname}-${var.piping2_name}")
   resource_group_name = azurerm_resource_group.loc2_aksnet_rg.name
   location            = azurerm_resource_group.loc2_aksnet_rg.location
   sku                 = var.pip_sku
@@ -203,7 +197,7 @@ resource azurerm_traffic_manager_endpoint loc2_ing2_atf_endpoint {
 #--------------------------------------------------------------
 #   / Hub networking Resource Group
 data azurerm_resource_group hub_vnet_rg {
-  name        = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vnet_base_name}")
+  name        = lower("rg-${module.main_loc.code}-${var.subs_nickname}-${var.hub_vnet_base_name}")
 }
 #   / Get Firewall in the Hub Networking RG
 data azurerm_resources azfw_in_hub_netowkring_rg {

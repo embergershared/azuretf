@@ -21,9 +21,13 @@
 #--------------------------------------------------------------
 #   1.: Plan's Locals
 #--------------------------------------------------------------
-module main_shortloc {
+module main_loc {
   source    = "../../../../../modules/shortloc"
   location  = var.main_location
+}
+module kv_loc {
+  source    = "../../../../../modules/shortloc"
+  location  = var.cluster_location
 }
 locals {
   # Plan Tag value
@@ -34,17 +38,13 @@ locals {
 #--------------------------------------------------------------
 #   2.: Data collection of required resources (KV & ACR)
 #--------------------------------------------------------------
-data azurerm_key_vault kv_to_use {
-  name                  = lower("kv-${local.shortl_main_location}-${var.subs_nickname}-${var.sharedsvc_kv_suffix}")
-  resource_group_name   = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.sharedsvc_rg_name}")
-}
-data azurerm_container_registry acr_to_use {
-  name                  = lower("acr${local.shortl_main_location}${var.subs_nickname}${var.sharedsvc_acr_suffix}") # 5-50 alphanumeric characters
-  resource_group_name   = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.sharedsvc_rg_name}")
+data azurerm_key_vault local_kv {
+  name                  = lower("kv-${module.kv_loc.code}-${var.subs_nickname}-${var.sharedsvc_kv_suffix}")
+  resource_group_name   = lower("rg-${module.main_loc.code}-${var.subs_nickname}-${var.sharedsvc_rg_name}")
 }
 #   / Log Analytics Workspace
 data azurerm_resources hub_laws {
-  resource_group_name = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-logsdiag")
+  resource_group_name = lower("rg-${module.main_loc.code}-${var.subs_nickname}-hub-logsdiag")
   type                = "microsoft.operationalinsights/workspaces"
 }
 
@@ -55,20 +55,18 @@ module aks_cluster {
   source              = "../../../../../modules/aks-cluster"
 
   #   / Module Mandatory settings
-  calling_folder            = local.tf_plan
   cluster_location          = var.cluster_location
   aks_vnet_cidr             = var.aks_vnet_cidr
   subs_nickname             = var.subs_nickname
   cluster_name              = lower(var.cluster_name)
   k8s_version               = var.k8s_version
   laws_id                   = data.azurerm_resources.hub_laws.resources[0].id
-  acr_id                    = data.azurerm_container_registry.acr_to_use.id
-  secrets_kv_id             = data.azurerm_key_vault.kv_to_use.id
-  hub_vnet_name             = lower("vnet-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vnet_base_name}")
-  hub_rg_name               = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vnet_base_name}")
+  secrets_kv_id             = data.azurerm_key_vault.local_kv.id
+  hub_vnet_name             = lower("vnet-${module.main_loc.code}-${var.subs_nickname}-${var.hub_vnet_base_name}")
+  hub_rg_name               = lower("rg-${module.main_loc.code}-${var.subs_nickname}-${var.hub_vnet_base_name}")
   base_tags                 = local.base_tags
   hub_vnet_deploy_azfw      = var.hub_vnet_deploy_azfw
-  hub_azfw_name             = lower("azfw-${local.shortl_main_location}-${var.subs_nickname}-${var.hub_vnet_base_name}")
+  hub_azfw_name             = lower("azfw-${module.main_loc.code}-${var.subs_nickname}-${var.hub_vnet_base_name}")
   hub_vnet_deploy_vnetgw    = var.hub_vnet_deploy_vnetgw
 
   #   / Module Optional settings

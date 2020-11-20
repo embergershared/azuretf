@@ -17,11 +17,12 @@
 #   Short location codes
 #--------------------------------------------------------------
 locals {
+  name = lower(var.location)
   # Short Location codes
   short_location  = lookup({
     canadacentral   = "cac",
     canadaeast      = "cae",
     eastus          = "use",
     },
-    lower(var.location), "")
+    local.name, "")
 }

@@ -12,7 +12,7 @@ resource azurerm_monitor_diagnostic_setting db_diag {
 
   name                        = "${replace(lower(split("/", data.azurerm_resources.all_dbs.resources[count.index].name)[1]), "-", "")}-diagsetting"
   target_resource_id          = data.azurerm_resources.all_dbs.resources[count.index].id
-  storage_account_id          = var.stacct_id
+  storage_account_id          = data.azurerm_resources.all_dbs.resources[count.index].location == var.mainloc_stacct.location ? var.mainloc_stacct.id : var.secondloc_stacct.id
   log_analytics_workspace_id  = var.laws_id
 
   log {

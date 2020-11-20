@@ -54,7 +54,7 @@ data azuread_service_principal tf_sp {
 
 locals {
   # Dates formatted
-  UTC_to_TZ             = "-4h"
+  UTC_to_TZ             = "-5h"
   TZ_suffix             = "EST"
   now                   = timestamp() # in UTC
 
@@ -72,18 +72,15 @@ locals {
 
 
   # Tags values
-  tf_env = terraform.workspace == "default" ? " (default)" : ":${terraform.workspace}"
+  tf_workspace = terraform.workspace == "default" ? "default" : "${terraform.workspace}"
   base_tags = "${map(
-    "BuiltBy",      "Terraform 0.13.3",
-    "InitiatedBy",  "Emmanuel",
-    "TfPlan",       "${local.tf_plan}",
-    "TfValues",     "${local.tf_values}",
-    "TfState",      "${local.tf_state}${local.tf_env}",
-    "BuiltOn",      "${local.nowTZ}",
-    "RefreshedOn",  "${local.nowTZ}",
-    "AutomatedBy",  "${data.azuread_service_principal.tf_sp.display_name}"
+    "BuiltBy",              "Terraform 0.13.3",
+    "InitiatedBy",          "Emmanuel",
+    "TfPlan",               "${local.tf_plan}",
+    "TfValues",             "${local.tf_values}",
+    "TfState (Workspace)",  "${local.tf_state} (${local.tf_workspace})",
+    "BuiltOn",              "${local.nowTZ}",
+    "RefreshedOn",          "${local.nowTZ}",
+    "AutomatedBy",          "${data.azuread_service_principal.tf_sp.display_name}"
   )}"
-
-  # Location short for Main (leveraging the shortloc module)
-  shortl_main_location = module.main_shortloc.code
 }

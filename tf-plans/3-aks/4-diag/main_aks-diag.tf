@@ -17,38 +17,46 @@
 #--------------------------------------------------------------
 #   Plan's Locals
 #--------------------------------------------------------------
-module main_shortloc {
+module main_loc {
   source    = "../../../../../modules/shortloc"
   location  = var.main_location
 }
-locals {
-  # Plan Tag value
-  tf_plan   = "/tf-plans/3-aks/3-aks/4-diag/main_aks-diag.tf"
-
-  # Location short for AKS Cluster location
-  shortl_cluster_location  = module.aks_shortloc.code
+module secondary_loc {
+  source    = "../../../../../modules/shortloc"
+  location  = var.secondary_location
 }
-module aks_shortloc {
+module aks_loc {
   source    = "../../../../../modules/shortloc"
   location  = var.cluster_location
 }
 
+locals {
+  # Plan Tag value
+  tf_plan   = "/tf-plans/3-aks/3-aks/4-diag/main_aks-diag.tf"
+}
+
+
 #--------------------------------------------------------------
 #   Data collection of required resources
 #--------------------------------------------------------------
-#   / Diagnostics Storage account
-data azurerm_storage_account stdiag {
-  name                    = replace(lower("st${local.shortl_cluster_location}${var.subs_nickname}logsdiag"), "-", "")
-  resource_group_name     = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-logsdiag")
+#   / Main location Diagnostic Storage account
+data azurerm_storage_account mainloc_logdiag_stacct {
+  name                    = replace(lower("st${module.main_loc.code}${var.subs_nickname}logsdiag"), "-", "")
+  resource_group_name     = lower("rg-${module.main_loc.code}-${var.subs_nickname}-hub-logsdiag")
+}
+#   / Secondary location Diagnostic Storage account
+data azurerm_storage_account secondloc_logdiag_stacct {
+  name                    = replace(lower("st${module.secondary_loc.code}${var.subs_nickname}logsdiag"), "-", "")
+  resource_group_name     = lower("rg-${module.main_loc.code}-${var.subs_nickname}-hub-logsdiag")
 }
 #   / Log Analytics Workspace
 data azurerm_resources hub_laws {
-  resource_group_name = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-logsdiag")
+  resource_group_name = lower("rg-${module.main_loc.code}-${var.subs_nickname}-hub-logsdiag")
   type                = "microsoft.operationalinsights/workspaces"
 }
 #   / AKS Resource Group
 data azurerm_resource_group aks_rg {
-  name        = lower("rg-${local.shortl_cluster_location}-${var.subs_nickname}-aks-${var.cluster_name}")
+  name        = lower("rg-${module.aks_loc.code}-${var.subs_nickname}-aks-${var.cluster_name}")
 }
 
 #--------------------------------------------------------------
@@ -58,7 +66,8 @@ module aks_fulldiag {
   source              = "../../../../../modules/diagsettings/fullakscluster"
 
   aks_cluster_rg_name = data.azurerm_resource_group.aks_rg.name
-  stacct_id           = data.azurerm_storage_account.stdiag.id
+  mainloc_stacct      = data.azurerm_storage_account.mainloc_logdiag_stacct
+  secondloc_stacct    = data.azurerm_storage_account.secondloc_logdiag_stacct
   laws_id             = data.azurerm_resources.hub_laws.resources[0].id
   retention_days      = var.retention_days
 }

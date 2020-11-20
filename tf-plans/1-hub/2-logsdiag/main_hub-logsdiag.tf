@@ -27,7 +27,7 @@
 #--------------------------------------------------------------
 #   Plan's Locals
 #--------------------------------------------------------------
-module main_shortloc {
+module main_loc {
   source    = "../../../../modules/shortloc"
   location  = var.main_location
 }
@@ -41,8 +41,8 @@ locals {
 #--------------------------------------------------------------
 #   / Resource Group
 resource azurerm_resource_group logdiag_rg {
-  name     = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-logsdiag")
-  location = var.main_location
+  name     = lower("rg-${module.main_loc.code}-${var.subs_nickname}-hub-logsdiag")
+  location = module.main_loc.location
 
   tags = local.base_tags
   lifecycle { ignore_changes = [tags["BuiltOn"]] }

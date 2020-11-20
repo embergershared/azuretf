@@ -7,7 +7,8 @@ module aks_cluster_diag {
 
   # AKS Cluster Diag Setting instance specific
   rg_name             = var.aks_cluster_rg_name
-  stacct_id           = var.stacct_id
+  mainloc_stacct      = var.mainloc_stacct
+  secondloc_stacct    = var.secondloc_stacct
   laws_id             = var.laws_id
   retention_days      = var.retention_days
 }
@@ -17,7 +18,8 @@ module aks_vnet_diag {
 
   # VNet Diag Setting instance specific
   rg_name             = var.aks_cluster_rg_name
-  stacct_id           = var.stacct_id
+  mainloc_stacct      = var.mainloc_stacct
+  secondloc_stacct    = var.secondloc_stacct
   laws_id             = var.laws_id
   retention_days      = var.retention_days
 }
@@ -27,7 +29,8 @@ module aks_lbs_diag {
 
   # AKS Loadbalancers Diag Setting instance specific
   rg_name             = module.aks_cluster_diag.aks_managed_rg_name
-  stacct_id           = var.stacct_id
+  mainloc_stacct      = var.mainloc_stacct
+  secondloc_stacct    = var.secondloc_stacct
   laws_id             = var.laws_id
   retention_days      = var.retention_days
 }
@@ -37,7 +40,8 @@ module aks_pips_diag {
 
   # AKS Loadbalancer Diag Setting instance specific
   rg_name             = module.aks_cluster_diag.aks_managed_rg_name
-  stacct_id           = var.stacct_id
+  mainloc_stacct      = var.mainloc_stacct
+  secondloc_stacct    = var.secondloc_stacct
   laws_id             = var.laws_id
   retention_days      = var.retention_days
 }
@@ -47,7 +51,8 @@ module aks_nsgs_diag {
 
   # AKS NSG Diag Setting instance specific
   rg_name             = module.aks_cluster_diag.aks_managed_rg_name
-  stacct_id           = var.stacct_id
+  mainloc_stacct      = var.mainloc_stacct
+  secondloc_stacct    = var.secondloc_stacct
   laws_id             = var.laws_id
   retention_days      = var.retention_days
 }

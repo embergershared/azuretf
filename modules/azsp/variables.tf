@@ -9,5 +9,7 @@ variable subs_nickname    {}
 variable subs_adm_short   {}
 variable sp_naming        {}
 variable rotate_sp_secret { type = bool }
+variable nowUTCFormatted  {}
+variable in3yearsUTCFormatted {}
 variable kv_id            {}
 variable base_tags        {}

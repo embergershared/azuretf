@@ -27,7 +27,7 @@
 #--------------------------------------------------------------
 #   Plan's Locals
 #--------------------------------------------------------------
-module main_shortloc {
+module main_loc {
   source    = "../../../../modules/shortloc"
   location  = var.main_location
 }
@@ -41,8 +41,8 @@ locals {
 #--------------------------------------------------------------
 #   / Resource Group
 resource azurerm_resource_group tfstates_rg {
-  name     = lower("rg-${local.shortl_main_location}-${var.subs_nickname}-hub-terraform")
-  location = var.main_location
+  name     = lower("rg-${module.main_loc.code}-${var.subs_nickname}-hub-terraform")
+  location = module.main_loc.location
 
   tags = local.base_tags
   lifecycle { ignore_changes = [tags["BuiltOn"]] }
@@ -53,8 +53,8 @@ resource azurerm_resource_group tfstates_rg {
 #--------------------------------------------------------------
 #   / Backend data Storage with Terraform States
 resource azurerm_storage_account tfstate_storacct {
-  name                        = replace(lower("st${local.shortl_main_location}${var.subs_nickname}tfstates"), "-", "")
-  location                    = var.main_location
+  name                        = replace(lower("st${module.main_loc.code}${var.subs_nickname}tfstates"), "-", "")
+  location                    = module.main_loc.location
   resource_group_name         = azurerm_resource_group.tfstates_rg.name
   account_kind                = "StorageV2"
   account_tier                = "Standard"
@@ -65,7 +65,9 @@ resource azurerm_storage_account tfstate_storacct {
 }
 #   / Terraform States container in Main Location
 resource azurerm_storage_container tfstatecontainer {
-  name                  = lower("terraform-states")
+  for_each              = var.tfstates_containers
+
+  name                  = lower(each.value)
   storage_account_name  = azurerm_storage_account.tfstate_storacct.name
   container_access_type = "private"
 }

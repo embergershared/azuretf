@@ -7,7 +7,8 @@ module nsgs_diag {
 
   # NSGs Diag Setting instance specific
   rg_name             = var.jumpboxes_rg_name
-  stacct_id           = var.stacct_id
+  mainloc_stacct      = var.mainloc_stacct
+  secondloc_stacct    = var.secondloc_stacct
   laws_id             = var.laws_id
   retention_days      = var.retention_days
 }
@@ -17,7 +18,8 @@ module nics_diag {
 
   # NICs Diag Setting instance specific
   rg_name             = var.jumpboxes_rg_name
-  stacct_id           = var.stacct_id
+  mainloc_stacct      = var.mainloc_stacct
+  secondloc_stacct    = var.secondloc_stacct
   laws_id             = var.laws_id
   retention_days      = var.retention_days
 }
@@ -27,7 +29,8 @@ module pubips_diag {
 
   # Public IPs Diag Setting instance specific
   rg_name             = var.jumpboxes_rg_name
-  stacct_id           = var.stacct_id
+  mainloc_stacct      = var.mainloc_stacct
+  secondloc_stacct    = var.secondloc_stacct
   laws_id             = var.laws_id
   retention_days      = var.retention_days
 }

@@ -21,7 +21,7 @@
 #        all other arguments or none will run a "Apply"
 #
 #   Notes:
-#   - If using "Build": "Pop-Location" brings you back to the Startedng dir,
+#   - If using "Build": "Pop-Location" brings you back to the Started dir,
 #   - Files from the Plan are copied with the prefix "srcd-",
 #   - "Press Enter to finish script" will:
 #     - Delete the Plan sourced files from the Values folder,
@@ -57,10 +57,14 @@ else { $DebugPreference = "SilentlyContinue" } # "SilentlyContinue" | "Continue"
 
 # Script constants
 $tfexe = "terraform"
-$ValuesSubscRootPath = "..\subscriptions\"
+$ValuesRootPath = "..\subscriptions\"
 $PlansRootPath = "..\tf-plans"
 $SourcingPrefix = "srcd-"
-$TfVariablesFilesPattern = "variables_"
+$TfVariablesFilesPattern = "var_"
+$TfVariablesManifest = "var_manifest.json"
+$functionIndent = ""
+$functionIdentIncrement = "   "
+$debugLevelIndent = "   "
 
 # Selecting if we Execute Terraform or Build the TfPlan in the Values' folder
 $Command = "Execute" ; $CleanAtEnd = "true" ; $Halt = "false"
@@ -74,7 +78,7 @@ if($args.Contains("-h")) { $Halt = "true" }
 #--------------------------------------------------------------
 #   Script Start
 #--------------------------------------------------------------
-Write-Debug "Raw arguments are: $args"
+Write-Debug "$($functionIndent)Raw arguments are: $args"
 Write-Host "$($stepsSeparator)Started $($scriptName) script."
 Write-Host "Parameters    : Command=""$Command"", Plan=""$PlanTfPath"", Values=""$ValuesTfPath"""
 
@@ -84,7 +88,7 @@ Write-Host "Parameters    : Command=""$Command"", Plan=""$PlanTfPath"", Values="
 #   / Generate Full Path
 function BuildPlanTfPath {
   param([string] $PlanTfPathInput)
-  Write-Debug "Started  BuildPlanTfPath($PlanTfPathInput)"
+  Write-Debug "$($functionIndent)Started  BuildPlanTfPath($PlanTfPathInput)"
   
   # Build the path
   if($PlanTfPathInput.Contains("."))
@@ -97,22 +101,31 @@ function BuildPlanTfPath {
 
   $global:planFullPath = (Get-Item $PlanTfpath).Fullname
 
-  Write-Debug "    Built Plan   Path: ""$global:planFullPath"""
+  Write-Debug "$($functionIndent)$($debugLevelIndent)Built Plan   Path: ""$global:planFullPath"""
 
   # Test the path exists
   if (!(Test-Path -Path $global:planFullPath))
   {
-    Write-Error "    Plan Path ""$global:planFullPath"" doesn't exist."
+    Write-Error "$($functionIndent)$($debugLevelIndent)Plan Path ""$global:planFullPath"" doesn't exist."
   }
   else {
-    Write-Debug "    Plan   Path exists."
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Plan   Path exists."
   }
+
+  # Calculating the Plan folder depth (to avoid search infinite loop)
+  $PlanRootFullPath = (Get-Item $PlansRootPath).Fullname
+  $PlanRootFullLevel = $PlanRootFullPath.Split("\").Count
+  $planFullLevel = $global:planFullPath.Split("\").Count
+  $global:planLevel = $planFullLevel - $PlanRootFullLevel
+
   Write-Host "Plan   path is: $global:planFullPath"
-  Write-Debug "Finished BuildPlanTfPath($PlanTfPathInput)"
+  Write-Debug "$($functionIndent)$($debugLevelIndent)Plan  depth is: $global:planLevel"
+
+  Write-Debug "$($functionIndent)Finished BuildPlanTfPath($PlanTfPathInput)"
 }
 function BuildValuesTfPath {
   param([string] $valuesTfPathInput)
-  Write-Debug "Started    BuildValuesTfPath($valuesTfPathInput)"
+  Write-Debug "$($functionIndent)Started    BuildValuesTfPath($valuesTfPathInput)"
   
   # Test the input
   if (Test-Path -Path $valuesTfPathInput) {
@@ -125,160 +138,299 @@ function BuildValuesTfPath {
       $valpath = "$valuesTfPathInput"
     }
     else {
-      $valpath = Join-Path -Path $ValuesSubscRootPath -ChildPath $valuesTfPathInput
+      $valpath = Join-Path -Path $ValuesRootPath -ChildPath $valuesTfPathInput
     }
     $global:valueFullPath = (Get-Item $valpath).Fullname
   }
 
-  Write-Debug "    Built Values Path: ""$global:valueFullPath"""
+  Write-Debug "$($functionIndent)$($debugLevelIndent)Built Values Path: ""$global:valueFullPath"""
 
   # Test the path exists
   if (!(Test-Path -Path $global:valueFullPath))
   {
-    Write-Error "    Values Path ""$global:valueFullPath"" doesn't exist."
+    Write-Error "$($functionIndent)$($debugLevelIndent)Values Path ""$global:valueFullPath"" doesn't exist."
   }
   else {
-    Write-Debug "    Values Path exists."
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Values Path exists."
   }
+
+  # Calculating the Plan folder depth (to avoid search infinite loop)
+  $ValuesRootFullPath = (Get-Item $ValuesRootPath).Fullname
+  $ValuesRootFullLevel = $ValuesRootFullPath.Split("\").Count
+  $valueFullLevel = $global:valueFullPath.Split("\").Count
+  $global:valueLevel = $valueFullLevel - $ValuesRootFullLevel +1 # +1 to allow cross subscriptions values
+
   Write-Host "Values path is: $global:valueFullPath"
-  Write-Debug "Finished BuildValuesTfPath($valuesTfPathInput)"
+  Write-Debug "$($functionIndent)$($debugLevelIndent)Values depth is: $global:valueLevel"
+
+  Write-Debug "$($functionIndent)Finished BuildValuesTfPath($valuesTfPathInput)"
 }
 #   / Copy Terraform files from Plan to Values' path
 function CopyFilesInValuesTfPath {
-  Write-Debug "Started  CopyFilesInValuesTfPath()"
+  Write-Debug "$($functionIndent)Started  CopyFilesInValuesTfPath()"
 
   # Clear current value
   $global:sourcedFilesList = @() # Declares it as an array
 
   # Build files list:
-  #   Terraform plan files
+  #   Terraform files in the Plan folder
   $global:sourcedFilesList += Get-ChildItem -Path "$global:planFullPath\*" -Include *.tf
 
-  #   Terraform plan Common files
+  #   Terraform Common file(s)
   $global:sourcedFilesList += Get-ChildItem -Path "$PSScriptRoot\*" -Include *main_common*.tf
 
-  Write-Debug "    Files to be copied in Values Path:"
+  #   Terraform Variables manifest processing
+  $functionIndent = $functionIndent + $functionIdentIncrement
+  ProcessVariablesManifest
+  $functionIndent = $functionIndent.Substring($functionIdentIncrement.length)
+
+  Write-Debug "$($functionIndent)$($debugLevelIndent)Files to be copied in Values Path:"
   $global:sourcedFilesList | ForEach-Object {
-    Write-Debug "      $_"
+    Write-Debug "$($functionIndent)$($debugLevelIndent)$($debugLevelIndent)$_"
   }
 
   # Copy the files in Values path
   $global:sourcedFilesList | ForEach-Object {
     Copy-Item $_ -Destination "$global:valueFullPath\$($SourcingPrefix)$($_.Name)" -Force
-    Write-Debug "   Copied $_ into $global:valueFullPath"
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Copied $_ into $global:valueFullPath"
   }
 
-  Write-Debug "  Copied a total of $($global:sourcedFilesList.Length) files."
+  Write-Debug "$($functionIndent)$($debugLevelIndent)Copied a total of $($global:sourcedFilesList.Length) files."
   Write-Host  "Copied $($global:sourcedFilesList.Length) ""$($SourcingPrefix)"" files in Values Path."
-  Write-Debug "Finished CopyFilesInValuesTfPath()"
+  Write-Debug "$($functionIndent)Finished CopyFilesInValuesTfPath()"
+}
+function ProcessVariablesManifest {
+  Write-Debug "$($functionIndent)Started  ProcessVariablesManifest()"
+  
+  $tfvarManifestFullPath = "$($global:planFullPath)$($TfVariablesManifest)"
+  
+  if (Test-Path -Path $tfvarManifestFullPath)
+  {
+    Write-Host "Processing Variables manifest found in Plan folder ($($TfVariablesManifest))."
+
+    #   Getting the list of Terraform Variables files to find from manifest content
+    $tfvarFilesToFind = Get-Content -Path $tfvarManifestFullPath | ConvertFrom-Json
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Manifest variable file = $($tfvarManifestFullPath)."
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Manifest variable file references $($tfvarFilesToFind.count) files."
+
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Files referenced:"
+    $tfvarFilesToFind | ForEach-Object {
+      Write-Debug "$($functionIndent)$($debugLevelIndent)$($debugLevelIndent)$($_)"
+    }
+
+    # Processing each Variable file to find
+    $nbTfvarFilesToFind = $tfvarFilesToFind.count
+
+    $tfvarFilesToFind | ForEach-Object {
+      $tfvarFileToFind = $_
+      Write-Debug "$($functionIndent)$($debugLevelIndent)Searching Variable file for: $($tfvarFileToFind)"
+
+      $tfvarFileFoundFullName = ""
+      $tfvarFileSearchPath = Get-Item $global:planFullPath
+      $tfvarFileSearchLevel = 0
+
+      Do {
+        # Scanning current folder + subfolders for searched file
+        $tfvarFileLevelScanResults = Get-ChildItem $tfvarFileSearchPath -Include *$($tfvarFileToFind)* -Recurse #-Exclude *.tfvars.json
+        
+        # If matching results found, process:
+        if($tfvarFileLevelScanResults) {
+          # We found 1/n file(s) so we have 1 less remaining to find
+          $nbTfvarFilesToFind -= 1
+
+          Write-Debug "$($functionIndent)$($debugLevelIndent)$($debugLevelIndent)Found $($tfvarFileLevelScanResults.count) Terraform Variable file(s) matching $($tfvarFileToFind) $($tfvarFileSearchLevel) level(s) up."
+
+          # as we can find more than 1 instance, we force to take the 1st in the list
+          $tfvarFileLevelScanResults[0] | ForEach-Object {
+            # Extract the file Full Name (with Path)
+            $tfvarFileFoundFullName = $_.FullName
+            # Add the file to the list of files to copy in the Value path
+            $global:sourcedFilesList += Get-ChildItem -Path $tfvarFileFoundFullName
+
+            if ($tfvarFileLevelScanResults.count -eq 1) {
+              # We processed the 1 file found. It is expected
+              Write-Debug "$($functionIndent)$($debugLevelIndent)$($debugLevelIndent)Added Terraform Variable found $($tfvarFileSearchLevel) level(s) up: $($tfvarFileFoundFullName)"
+            }
+            else{
+              # We processed the 1st file of a list of multiples. It is not expected.
+              Write-Warning "$($functionIndent)$($debugLevelIndent)$($debugLevelIndent)Added 1st Terraform Variable found $($tfvarFileSearchLevel) level(s) up: $($tfvarFileFoundFullName)"
+            }
+          }
+        }
+        
+        # As we processed this level, we move up 1 folder and increment level control to be ready for next loop
+        $tfvarFileSearchPath = $tfvarFileSearchPath.parent
+        $tfvarFileSearchLevel += 1
+      }
+      # We stop when we either found a file or reached max expected level of search
+      Until (($tfvarFileFoundFullName -ne "") -or ($tfvarFileSearchLevel -eq $global:planLevel))
+
+      # We Finished the search. Let's output why
+      if ($tfvarFileFoundFullName -ne "") {
+        Write-Debug "$($functionIndent)$($debugLevelIndent)Finished search for ""$($tfvarFileToFind)"" with 1 file found and added"
+      }
+      else {
+        if ($tfvarFileSearchLevel -eq $global:planLevel) {
+          Write-Debug "$($functionIndent)$($debugLevelIndent)Finished search for ""$($tfvarFileToFind)"" without success in all levels scanned"
+        }
+        else {
+          Write-Error "$($functionIndent)$($debugLevelIndent)Finished search for ""$($tfvarFileToFind)"" with an Error"
+        }
+      }
+    }
+
+    # Control we have all the var files we needed
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Remaining variable files to find = $($nbTfvarFilesToFind)."
+  }
+  else{
+    Write-Host "No Variables manifest in Plan folder matching ""$($TfVariablesManifest)""."
+  }
+
+  Write-Debug "$($functionIndent)Finished ProcessVariablesManifest()"
 }
 #   / Source Terraform variables values
 function SourceValuesInEnvVars {
-  Write-Debug "Started  SourceValuesInEnvVars()"
+  Write-Debug "$($functionIndent)Started  SourceValuesInEnvVars()"
 
   $global:jsonFiles = @() # Declares it as an array
   $global:nbVarsAdded = 0
 
+  $functionIndent = $functionIndent + $functionIdentIncrement
   SourceFromTfVarFiles
+  $functionIndent = $functionIndent.Substring($functionIdentIncrement.length)
 
   # Create TF_VARS for all their elements
   $global:jsonFiles | ForEach-Object {
-    Write-Debug "    Processing ""$($_.Name)"""
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Processing ""$($_.Name)"""
     if($_) {
       $vars = Get-Content -Raw -Path $($_.FullName) | ConvertFrom-Json
+      $functionIndent = $functionIndent + $functionIdentIncrement
       SourceJson -json $vars
+      $functionIndent = $functionIndent.Substring($functionIdentIncrement.length)
     }
   }
 
   Write-Host "Processed $($global:jsonFiles.Length) JSON files and $global:nbVarsAdded variables."
 
-  Write-Debug "Finished SourceValuesInEnvVars()"
+  Write-Debug "$($functionIndent)Finished SourceValuesInEnvVars()"
 }
 function SourceFromTfVarFiles {
-  Write-Debug "Started  SourceFromTfVarFiles()"
+  Write-Debug "$($functionIndent)Started  SourceFromTfVarFiles()"
   Write-Host "Sourcing Variables values from Terraform Variables files names ($($TfVariablesFilesPattern))."
 
   Push-Location $global:valueFullPath
 
   # Listing the Terraform variables files declared for this plan
-  $tfvarFiles = @()
-  $tfvarFiles = Get-ChildItem -Filter *$($TfVariablesFilesPattern)*.tf -File
-  Write-Debug "   Found $($tfvarFiles.Count) variables files for the plan:"
-  $tfvarFiles | ForEach-Object {
-    Write-Debug "      $_"
+  $tfvarFilesToSource = @()
+  $tfvarFilesToSource = Get-ChildItem -Filter *$($TfVariablesFilesPattern)*.tf -File
+  
+  Write-Debug "$($functionIndent)$($debugLevelIndent)Found $($tfvarFilesToSource.Count) variables files for the plan:"
+  $tfvarFilesToSource | ForEach-Object {
+    Write-Debug "$($functionIndent)      $_"
   }
 
-  # Extracting required Values files names patterns to find
-  Write-Debug "   Extracting JSON files patterns to match"
-  $tfvarValuesToSource = @()  # Array of strings
-  $tfvarFiles | ForEach-Object {
+  # Extracting required Values files names from Terraform variables files present
+  Write-Debug "$($functionIndent)$($debugLevelIndent)Extracting JSON files patterns to search for"
+  $valuesPatternsToSource = @()  # Array of strings
+  
+  $tfvarFilesToSource | ForEach-Object {
     $pattern = $($_.Name).Split($TfVariablesFilesPattern)[1].Split(".")[0]
-    Write-Debug "      For Variable file: $($_.Name), pattern is: $($pattern)"
-    $tfvarValuesToSource += $pattern
+    Write-Debug "$($functionIndent)$($debugLevelIndent)$($debugLevelIndent)For Variable file: $($_.Name), pattern is: $($pattern)"
+    $valuesPatternsToSource += $pattern
   }
 
-  Write-Debug "   Extracted $($tfvarValuesToSource.Count) patterns to match."
+  Write-Debug "$($functionIndent)$($debugLevelIndent)Extracted $($valuesPatternsToSource.Count) patterns to match."
 
   # Searching for the JSON files going up the structure
-  $nbValuesToFind = $tfvarValuesToSource.Length
-  $jsonFiles = @()  # Array of strings
+  $nbValuesPatternsToSource = $valuesPatternsToSource.Length
+  $jsonFilesFound = @()  # Array of strings (emptying it)
 
-  $tfvarValuesToSource | ForEach-Object {
-    $valuesToFind = $_
-    Write-Debug "   Finding JSON(s) for: $($valuesToFind)."
+  $valuesPatternsToSource | ForEach-Object {
+    $valuesPatternToSource = $_
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Finding JSON(s) for: $($valuesPatternToSource)"
 
-    $jsonFile = ""
-    $path = Get-Item $global:valueFullPath
+    $jsonFileFoundFullName = ""
+    $jsonFileSearchPath = Get-Item $global:valueFullPath
+    $jsonFileSearchLevel = 0
 
     Do {
-      $test = Get-ChildItem $path -Include *$($valuesToFind)*.json -Recurse -Exclude *.tfvars.json
-      if($test){
-        $nbValuesToFind -= 1
-        $test | ForEach-Object {
-          $jsonFile = $_.FullName
-          $jsonFiles += Get-ChildItem -Path $jsonFile
-          Write-Debug "      Found JSON file: $($jsonFile)"
+      # Scanning current folder + subfolders for searched file
+      $jsonFileLevelScanResult = Get-ChildItem $jsonFileSearchPath -Include *$($valuesPatternToSource)*.json -Recurse -Exclude *.tfvars.json
+
+      if($jsonFileLevelScanResult) {
+        # We found 1/n file(s) so we have 1 less remaining to find
+        $nbValuesPatternsToSource -= 1
+
+        Write-Debug "$($functionIndent)$($debugLevelIndent)$($debugLevelIndent)Found $($jsonFileLevelScanResult.count) JSON file(s) matching $($valuesPatternToSource) $($jsonFileSearchLevel) level(s) up."
+
+        $jsonFileLevelScanResult | ForEach-Object {
+          # Extract the file Full Name (with Path)
+          $jsonFileFoundFullName = $_.FullName
+
+          $jsonFilesFound += Get-ChildItem -Path $jsonFileFoundFullName
+          Write-Debug "$($functionIndent)$($debugLevelIndent)$($debugLevelIndent)Added JSON file: $($jsonFileFoundFullName)"
         }
       }
-      $path = $path.parent
-    } Until ($jsonFile -ne "")
+
+      # As we processed this level, we move up 1 folder and increment level control to be ready for next loop
+      $jsonFileSearchPath = $jsonFileSearchPath.parent
+      $jsonFileSearchLevel += 1
+    }
+    # We stop when we either found a file or reached max expected level of search
+    Until (($jsonFileFoundFullName -ne "") -or ($jsonFileSearchLevel -eq $global:valueLevel))
+  
+    # We Finished the search. Let's output why
+    if ($jsonFileFoundFullName -ne "") {
+      Write-Debug "$($functionIndent)$($debugLevelIndent)Finished search for ""$($valuesPatternToSource)"" JSON values file(s) with $($jsonFileLevelScanResult.count) file(s) found and added"
+    }
+    else {
+      if ($jsonFileSearchLevel -eq $global:valueLevel) {
+        Write-Debug "$($functionIndent)$($debugLevelIndent)Finished search for ""$($valuesPatternToSource)"" JSON values file(s) without success in all levels scanned"
+      }
+      else {
+        Write-Error "$($functionIndent)$($debugLevelIndent)Finished search for ""$($valuesPatternToSource)"" JSON values file(s) with an Error"
+      }
+    }
   }
 
   # Control we have all the values we needed
-  Write-Debug "   Remaining patterns to match = $($nbValuesToFind)."
+  Write-Debug "$($functionIndent)$($debugLevelIndent)Remaining patterns to match = $($nbValuesPatternsToSource)."
 
-  # Reverse files order to process closest JSON last
-  Write-Debug "   Ordering JSON files for processing."
-  $global:jsonFiles = $jsonFiles | Sort-Object Directory
+  # Reverse files order to process closest JSON Values last (and eventually override higher levels values)
+  Write-Debug "$($functionIndent)$($debugLevelIndent)Ordering JSON files for processing."
+  $global:jsonFiles = $jsonFilesFound | Sort-Object Directory
 
   Pop-Location
 
-  Write-Debug "Finished SourceFromTfVarFiles()"
+  Write-Debug "$($functionIndent)Finished SourceFromTfVarFiles()"
 }
 function SourceJson {
   param([PSObject]$json)
+  Write-Debug "$($functionIndent)Started  SourceJson()"
 
   $json.PSObject.Properties | ForEach-Object {
-    Write-Debug "      Sourcing:  ""$($_.Name)"""
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Sourcing:  ""$($_.Name)"""
     $command = '$env:TF_VAR_' + $_.Name + " = '" + $_.Value + "'"
     try {
       Invoke-Expression $command
       $global:nbVarsAdded += 1
     } catch {
-      Write-Debug "        Command Error: $_"
+      Write-Debug "$($functionIndent)$($debugLevelIndent)Command Error: $_"
     }
   }
+
+  Write-Debug "$($functionIndent)Finished SourceJson()"
 }
 #   / Execute Terraform
 function ExecuteTerraform {
-  Write-Debug "Started  ExecuteTerraform()"
+  Write-Debug "$($functionIndent)Started  ExecuteTerraform()"
 
   # Get current location
-  Write-Debug "  Current location is: $(Get-location)"
+  Write-Debug "$($functionIndent)$($debugLevelIndent)Current location is: $(Get-location)"
 
   # Go to Values Full Path
   Push-Location $global:valueFullPath
-  Write-Debug "  Moved to: $global:valueFullPath"
+  Write-Debug "$($functionIndent)$($debugLevelIndent)Moved to: $global:valueFullPath"
 
   if($Command -ne "Build")
   {
@@ -292,10 +444,10 @@ function ExecuteTerraform {
       # Is there a .terraform folder?
       if (Test-Path -Path $global:valueFullPath\.terraform)
       {
-        Write-Debug "    .terraform folder exists, skipping init."
+        Write-Debug "$($functionIndent)$($debugLevelIndent).terraform folder exists, skipping init."
       }
       else {
-        Write-Debug "    .terraform folder doesn't exist, initializing Terraform."
+        Write-Debug "$($functionIndent)$($debugLevelIndent).terraform folder doesn't exist, initializing Terraform."
         TerraformInit
       }
 
@@ -308,10 +460,10 @@ function ExecuteTerraform {
       # Is there a .terraform folder?
       if (Test-Path -Path $global:valueFullPath\.terraform)
       {
-        Write-Debug "    .terraform folder exists, skipping init."
+        Write-Debug "$($functionIndent)$($debugLevelIndent).terraform folder exists, skipping init."
       }
       else {
-        Write-Debug "    .terraform folder doesn't exist, initializing Terraform."
+        Write-Debug "$($functionIndent)$($debugLevelIndent).terraform folder doesn't exist, initializing Terraform."
         TerraformInit
       }
 
@@ -324,10 +476,10 @@ function ExecuteTerraform {
       # Is there a .terraform folder?
       if (Test-Path -Path $global:valueFullPath\.terraform)
       {
-        Write-Debug "    .terraform folder exists, skipping init."
+        Write-Debug "$($functionIndent)$($debugLevelIndent).terraform folder exists, skipping init."
       }
       else {
-        Write-Debug "    .terraform folder doesn't exist, initializing Terraform."
+        Write-Debug "$($functionIndent)$($debugLevelIndent).terraform folder doesn't exist, initializing Terraform."
         TerraformInit
       }
 
@@ -347,59 +499,59 @@ function ExecuteTerraform {
 
     # Pop back
     Pop-Location
-    Write-Debug "  Popped back to: $(Get-Location)"
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Popped back to: $(Get-Location)"
   }
   
-  Write-Debug "Finished ExecuteTerraform()"
+  Write-Debug "$($functionIndent)Finished ExecuteTerraform()"
 }
 function TerraformInit {
-  Write-Debug "Started  TerraformInit()"
+  Write-Debug "$($functionIndent)Started  TerraformInit()"
   try {
     Invoke-Expression "$tfexe init"
   } catch {
-    Write-Debug "        Command Error: $_"
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Command Error: $_"
   }
-  Write-Debug "Finished TerraformInit()"
+  Write-Debug "$($functionIndent)Finished TerraformInit()"
 }
 function TerraformPlan {
-  Write-Debug "Started  TerraformPlan()"
+  Write-Debug "$($functionIndent)Started  TerraformPlan()"
   try {
     Invoke-Expression "$tfexe plan"
   } catch {
-    Write-Debug "        Command Error: $_"
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Command Error: $_"
   }
-  Write-Debug "Finished TerraformPlan()"
+  Write-Debug "$($functionIndent)Finished TerraformPlan()"
 }
 function TerraformApply {
-  Write-Debug "Started  TerraformApply()"
+  Write-Debug "$($functionIndent)Started  TerraformApply()"
   try {
     Invoke-Expression "$tfexe apply"
   } catch {
-    Write-Debug "        Command Error: $_"
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Command Error: $_"
   }
-  Write-Debug "Finished TerraformApply()"
+  Write-Debug "$($functionIndent)Finished TerraformApply()"
 }
 function TerraformAutoApply {
-  Write-Debug "Started  TerraformApply()"
+  Write-Debug "$($functionIndent)Started  TerraformApply()"
   try {
     Invoke-Expression "$tfexe apply -auto-approve"
   } catch {
-    Write-Debug "        Command Error: $_"
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Command Error: $_"
   }
-  Write-Debug "Finished TerraformApply()"
+  Write-Debug "$($functionIndent)Finished TerraformApply()"
 }
 function TerraformDestroy {
-  Write-Debug "Started  TerraformDestroy()"
+  Write-Debug "$($functionIndent)Started  TerraformDestroy()"
   try {
     Invoke-Expression "$tfexe destroy"
   } catch {
-    Write-Debug "        Command Error: $_"
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Command Error: $_"
   }
-  Write-Debug "Finished TerraformDestroy()"
+  Write-Debug "$($functionIndent)Finished TerraformDestroy()"
 }
 #   / Remove Terraform variables values
 function ClearValuesInEnvVars {
-  Write-Debug "Started  ClearValuesInEnvVars()"
+  Write-Debug "$($functionIndent)Started  ClearValuesInEnvVars()"
 
   $global:nbVarsRemoved = 0
 
@@ -408,7 +560,7 @@ function ClearValuesInEnvVars {
 
   # Remove TF_VARS for all their elements
   $global:jsonFiles | ForEach-Object {
-    Write-Debug "    Processing ""$($_.Name)"""
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Processing ""$($_.Name)"""
     if($_) {
       $vars = Get-Content -Raw -Path $($_.FullName) | ConvertFrom-Json
       RemoveJson -json $vars
@@ -417,44 +569,44 @@ function ClearValuesInEnvVars {
 
   Write-Host "Removed $global:nbVarsRemoved ""Env:TF_VAR_*"" Environment variables."
 
-  Write-Debug "Finished ClearValuesInEnvVars()"
+  Write-Debug "$($functionIndent)Finished ClearValuesInEnvVars()"
 }
 function RemoveJson {
   param([PSObject]$json)
   $json.PSObject.Properties | ForEach-Object {
-    Write-Debug "      Removing:  ""$($_.Name)"""
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Removing:  ""$($_.Name)"""
     $var = Get-Item "Env:TF_VAR_$($_.Name)" -ErrorAction SilentlyContinue
     if($var -ne $null)
     { 
       Remove-Item $var.PSPath
-      Write-Debug "      Removed :   Env:$($var.Name) | $($var.Value)"
+      Write-Debug "$($functionIndent)$($debugLevelIndent)Removed :   Env:$($var.Name) | $($var.Value)"
       $global:nbVarsRemoved += 1
     }
   }
 }
 function ClearAllEnvTfVars {
-  Write-Debug "Started  ClearAllEnvTfVars()"
+  Write-Debug "$($functionIndent)Started  ClearAllEnvTfVars()"
 
   $global:nbVarsRemoved = 0
 
   $vars = Get-ChildItem "env:TF_VAR_*"
   $vars | ForEach-Object {
-    Write-Debug "      Removing: Env:$($_.Name)"
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Removing: Env:$($_.Name)"
     $var = Get-Item "Env:$($_.Name)" -ErrorAction SilentlyContinue
     if($var -ne $null)
     { 
       Remove-Item $var.PSPath
-      Write-Debug "      Removed : Env:$($var.Name) | $($var.Value)"
+      Write-Debug "$($functionIndent)$($debugLevelIndent)$($debugLevelIndent)Removed : Env:$($var.Name) | $($var.Value)"
       $global:nbVarsRemoved += 1
     }
   }
   Write-Host  "Removed $($global:nbVarsRemoved) variables from ""Env:""."
 
-  Write-Debug "Finished ClearAllEnvTfVars()"
+  Write-Debug "$($functionIndent)Finished ClearAllEnvTfVars()"
 }
 #   / Delete copied files from Values' path
 function DeleteCopiedFilesInValuesTfPath {
-  Write-Debug "Started  DeleteCopiedFilesInValuesTfPath()"
+  Write-Debug "$($functionIndent)Started  DeleteCopiedFilesInValuesTfPath()"
 
   $global:sourcedFilesRemoved = 0
 
@@ -462,12 +614,12 @@ function DeleteCopiedFilesInValuesTfPath {
   $global:sourcedFilesList | ForEach-Object {
     Remove-Item "$global:valueFullPath\$($SourcingPrefix)$($_.Name)" -Force
     $global:sourcedFilesRemoved += 1
-    Write-Debug "   Deleted $($_.Name) from $global:valueFullPath"
+    Write-Debug "$($functionIndent)$($debugLevelIndent)Deleted $($_.Name) from $global:valueFullPath"
   }
 
   Write-Host  "Deleted $($global:sourcedFilesRemoved) ""$($SourcingPrefix)"" files from Values Path."
 
-  Write-Debug "Finished DeleteCopiedFilesInValuesTfPath()"
+  Write-Debug "$($functionIndent)Finished DeleteCopiedFilesInValuesTfPath()"
 }
 
 #--------------------------------------------------------------

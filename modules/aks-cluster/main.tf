@@ -38,10 +38,11 @@ locals {
     "KubeVersion", "${var.k8s_version}",
   )}")
 
-  # Location short suffix for AKS Cluster
-  shortl_cluster_location  = module.aks_shortloc.code
+  # Now
+  now                   = timestamp() # in UTC
+  nowUTCFormatted       = "${formatdate("YYYY-MM-DD", local.now)}T${formatdate("hh:mm:ss", local.now)}Z" # "2029-01-01T01:01:01Z"
 }
-module aks_shortloc {
+module aks_loc {
   source    = "../shortloc"
   location  = var.cluster_location
 }
@@ -66,7 +67,7 @@ resource null_resource dependency_modules {
 resource null_resource aks_module_completion {
   depends_on = [
     azurerm_kubernetes_cluster.aks_cluster,
-    azurerm_role_assignment.aks_principals_reader_acr,
+    #azurerm_role_assignment.aks_principals_reader_acr,
     azurerm_role_assignment.aks_principals_contributor_aksrg,
     azurerm_key_vault_access_policy.aks_principals_accessget_kv,
     #azurerm_role_assignment.aks_principals_reader_aksnetrg,
@@ -86,8 +87,8 @@ data azurerm_client_config current {
 #   AKS Resource Group
 #--------------------------------------------------------------
 resource azurerm_resource_group aks_rg {
-  name        = lower("rg-${local.shortl_cluster_location}-${var.subs_nickname}-aks-${var.cluster_name}")
-  location    = var.cluster_location
+  name        = lower("rg-${module.aks_loc.code}-${var.subs_nickname}-aks-${var.cluster_name}")
+  location    = module.aks_loc.location
 
   tags = local.module_tags
   lifecycle { ignore_changes = [tags["BuiltOn"]] }
@@ -97,7 +98,7 @@ resource azurerm_resource_group aks_rg {
 #   AKS Networking
 #--------------------------------------------------------------
 resource azurerm_virtual_network aks_vnet {
-  name                    = lower("vnet-${local.shortl_cluster_location}-${var.subs_nickname}-aks-${var.cluster_name}")
+  name                    = lower("vnet-${module.aks_loc.code}-${var.subs_nickname}-aks-${var.cluster_name}")
   location                = azurerm_resource_group.aks_rg.location
   resource_group_name     = azurerm_resource_group.aks_rg.name
   address_space           = [ var.aks_vnet_cidr ]
@@ -109,7 +110,7 @@ resource azurerm_subnet aks_nodespods_subnet {
   name                    = "snet-nodespods"
   resource_group_name     = azurerm_resource_group.aks_rg.name
   virtual_network_name    = azurerm_virtual_network.aks_vnet.name
-  enforce_private_link_endpoint_network_policies = var.enable_privcluster
+  enforce_private_link_endpoint_network_policies = true # Set to true to enable Private Endpoints (previous was: var.enable_privcluster)
   address_prefixes        = [ var.aks_vnet_cidr ]
   service_endpoints       = [ "Microsoft.KeyVault", "Microsoft.Sql",
                               "Microsoft.ContainerRegistry", "Microsoft.Storage" ]
@@ -125,7 +126,7 @@ resource tls_private_key ssh_key {
 }
 #   / Store Private Key in Key Vault
 resource azurerm_key_vault_secret ssh_privpem_secret {
-  name            = lower("aks-${local.shortl_cluster_location}-${var.subs_nickname}-${var.cluster_name}-ssh-privkey-pem")
+  name            = lower("aks-${module.aks_loc.code}-${var.subs_nickname}-${var.cluster_name}-ssh-privkey-pem")
   key_vault_id    = var.secrets_kv_id
   not_before_date = local.nowUTCFormatted
 
@@ -142,7 +143,7 @@ resource azurerm_key_vault_secret ssh_privpem_secret {
 #--------------------------------------------------------------
 #   / Generate disk encryption key
 resource azurerm_key_vault_key cmk_key {
-  name         = lower("aks-${local.shortl_cluster_location}-${var.subs_nickname}-${var.cluster_name}-cmk-privkey")
+  name         = lower("aks-${module.aks_loc.code}-${var.subs_nickname}-${var.cluster_name}-cmk-privkey")
   key_vault_id = var.secrets_kv_id
   key_type     = "RSA"
   key_size     = 2048
@@ -157,7 +158,7 @@ resource azurerm_key_vault_key cmk_key {
 
 #   / Create Disk Encryption Set for AKS
 resource azurerm_disk_encryption_set cmk_des {
-  name                = lower("des-${local.shortl_cluster_location}-${var.subs_nickname}-${var.cluster_name}")
+  name                = lower("des-${module.aks_loc.code}-${var.subs_nickname}-${var.cluster_name}")
   location            = azurerm_resource_group.aks_rg.location
   resource_group_name = azurerm_resource_group.aks_rg.name
   key_vault_key_id    = azurerm_key_vault_key.cmk_key.id
@@ -187,9 +188,9 @@ resource azurerm_key_vault_access_policy cmk {
 resource azurerm_kubernetes_cluster aks_cluster {
   depends_on                  = [ tls_private_key.ssh_key ]
 
-  name                        = lower("aks-${local.shortl_cluster_location}-${var.subs_nickname}-${var.cluster_name}")
+  name                        = lower("aks-${module.aks_loc.code}-${var.subs_nickname}-${var.cluster_name}")
   location                    = azurerm_resource_group.aks_rg.location
-  dns_prefix                  = replace(lower("aks-${local.shortl_cluster_location}-${var.subs_nickname}-${var.cluster_name}"), "-", "")
+  dns_prefix                  = replace(lower("aks-${module.aks_loc.code}-${var.subs_nickname}-${var.cluster_name}"), "-", "")
   resource_group_name         = azurerm_resource_group.aks_rg.name
   kubernetes_version          = var.k8s_version        # check with: az aks get-versions --location canadacentral --output table
   node_resource_group         = "${azurerm_resource_group.aks_rg.name}-managed"
@@ -331,7 +332,17 @@ locals {
   #   ]),
   # [ azurerm_kubernetes_cluster.aks_cluster.kubelet_identity[0].object_id ]
   # )
+
+  # aks_agentpool_ids = flatten([
+  #   for x in azurerm_kubernetes_cluster.this :
+  #   [
+  #     # Agentpool MSI
+  #     for z in x.kubelet_identity :
+  #     z.object_id if z.object_id != ""
+  #   ] if length(keys(azurerm_kubernetes_cluster.this)) > 0
+  # ])
 }
+
 resource null_resource display_principal1 {
   depends_on              = [ azurerm_kubernetes_cluster.aks_cluster ]
 
@@ -353,16 +364,16 @@ resource null_resource display_principal2 {
 #--------------------------------------------------------------
 #   Required permissions for the AKS Cluster Principal(s)
 #--------------------------------------------------------------
-#   / Reader on the ACR
-#     => Required to pull images
-resource azurerm_role_assignment aks_principals_reader_acr {
-  depends_on              = [ azurerm_kubernetes_cluster.aks_cluster ]
-  count                   = length(local.aks_principals)
+# #   / Reader on the ACR
+# #     => Required to pull images
+# resource azurerm_role_assignment aks_principals_reader_acr {
+#   depends_on              = [ azurerm_kubernetes_cluster.aks_cluster ]
+#   count                   = length(local.aks_principals)
 
-  scope                   = var.acr_id
-  role_definition_name    = "Reader"
-  principal_id            = element(local.aks_principals, count.index)
-}
+#   scope                   = var.acr_id
+#   role_definition_name    = "Reader"
+#   principal_id            = element(local.aks_principals, count.index)
+# }
 
 #   / Contributor on the AKS Cluster RG
 #     => Required for AKS to:
@@ -395,7 +406,7 @@ resource azurerm_key_vault_access_policy aks_principals_accessget_kv {
 #   / Reader + Network Contributor OR Contributor on the aks-networking RG
 #     => Required for AKS Ingress to use precreated Public IPs
 data azurerm_resource_group aks_networking_rg {
-  name      = lower("rg-${local.shortl_cluster_location}-${var.subs_nickname}-aks-networking")
+  name      = lower("rg-${module.aks_loc.code}-${var.subs_nickname}-aks-networking")
 }
 resource azurerm_role_assignment aks_principals_contributor_aksnetrg {
   depends_on              = [ azurerm_kubernetes_cluster.aks_cluster ]
@@ -479,7 +490,7 @@ data azurerm_public_ip azfw_pip {
 resource azurerm_route_table egress_udr {
   count                           = var.hub_vnet_deploy_azfw ? 1 : 0
 
-  name                            = "udr-${local.shortl_cluster_location}-${replace(azurerm_subnet.aks_nodespods_subnet.name, "-", "")}-egress-to-azfw"
+  name                            = "udr-${module.aks_loc.code}-${replace(azurerm_subnet.aks_nodespods_subnet.name, "-", "")}-egress-to-azfw"
   location                        = azurerm_virtual_network.aks_vnet.location
   resource_group_name             = azurerm_virtual_network.aks_vnet.resource_group_name
   disable_bgp_route_propagation   = false
