@@ -27,8 +27,8 @@ The script does these main things:
 1. Merges all the Terraform Plan files ```*.tf``` (main and variable) into the instance Value folder,
 2. Searches for the Variables Terraform declaration files in the Plan folder structure, using the ```var_manifest.json``` content, and adding them into the instance Value folder,
 3. Searches for the Plan required Variables' values in ```*.json``` files within the Value folder structure:
-  * It looks for the JSON file named like the Terraform variable file merged,
-  * For example, a ```variable_tfspn.tf``` Terraform variable file will trigger the search for a ```*tfspn*.json``` values' file,
+    * It looks for the JSON file named like the Terraform variable file merged,
+    * For example, a ```variable_tfspn.tf``` Terraform variable file will trigger the search for a ```*tfspn*.json``` values' file,
 4. Creates Environment variables on the host for all the Variable/Value pairs required,
 5. Runs the Terraform command (default is "Apply") in the Value folder,
 6. Cleans everything after execution.
