@@ -9,23 +9,25 @@ Using IaC (Infrastructure as Code) based on Terraform for more than 2 years, I m
 1. **Start locally, but be ready for Pipelines** deployment later, as easily as possible,
 2. **Separate completely the Infrastructure Plans from their Instances' Values** (including defaults, and instances' Terraform backend state persistence),
 3. **Set a Variable's value once** for all the instances needing it (never duplicate, never copy/paste values, never store the same value in mutiple places),
-4. Acknowledge and code accordingly that **deployments happen in steps & layers**:
+4. Acknowledge that **deployments happen in steps & layers** and code accordingly:
     - **A Landing zone (Hub)**:    
     Networking, Policies, Egress & Ingress Firewall, Application Gateway, Key Vault, VPN, Jumpboxes, etc.
     - **Multiple Workloads groups (Spokes)**:    
     Virtual Machines, Storage, AI models, Databases, Functions, Containers instances, etc.
     - **Deployed in sequenced layers**:    
-      Deploy Networking > Data > Compute > Application.     
-      Remove in the reverse order (Application > Compute > etc.).
+      Deploy: Networking > Data > Compute > Application.     
+      Delete in the reverse order: Application > Compute > etc.
 
 With time, these challenges grew, whichever tools were used in the projects (Jenkins, Azure DevOps, bash and PowerShell scripts, Terraform local, Terraform Cloud, Terraform Enterprise).    
-I came to the above solution to be a very solid foundation in all cases.
+I came to this solution to be a very solid foundation for all cases and evolution scenarios.
 
 ## Offered solution
 To solve these challenges, I created a PowerShell script, and a structured fodlers organization.    
 The script does these main things:
-* Merges all the Terraform Plan files ```*.tf``` in the instance Value folder,
-* Searches for the Plan required Variables' values in ```*.json``` files, located in the Value folder(s),
+* Merges all the Terraform Plan files ```*.tf``` (main and variables) into the instance Value folder,
+* Searches for the Plan required Variables' values in ```*.json``` files:
+  * It looks for the JSON file named like the Terraform variable file merged,
+  * For example, a ```variable_tfspn.tf``` Terraform variable file will trigger the search for a ```*tfspn*.json``` values' file,
 * Creates Environment variables on the host for all the Variable/Value pairs required,
 * Runs the Terraform command (default is "Apply") in the Value folder,
 * Cleans everything after execution.
@@ -104,14 +106,14 @@ Note: Except for the ```-b``` & ```-h``` argument, all other arguments will clea
 To get started with the provided plans:
 1. Create an Azure Service Principal (Portal, azure CLI, azure PowerShell, etc.) that Terraform will use to create and manage Azure resources,
 2. Note the following data: *TenantId*, *SubscriptionId*, *AppId*, *AppSecret*,
-3. Give this Service Principal the appropriate permissions (usually Contributor on a ubscription),
+3. Give this Service Principal the appropriate permissions (usually Contributor on a subscription),
 4. Fill-in *TenantId*, *SubscriptionId*, *AppId* values in the file ```\subscriptions\demo\demo_tfspn.json```
 5. Modify the other values in ```demo_tfspn.json``` to your context,
 6. Fill-in *AppSecret* value in the file ```\subscriptions\demo\demo_tfspn_secret.json```
 7. Check that the file ```demo_tfspn_secret.json``` will not be checked-in your repo,
 8. Save the changes,
 9. Follow the **steps for the first plan**:    
-* The first plan ```\tf-plans\1-hub\1-terraform``` creates a "Terraform" resource group, storage account and container to store the Terraform states to follow.    
+* The first plan ```\tf-plans\1-hub\1-terraform``` creates a **"Terraform"** resource group, storage account and container to store the Terraform states to follow.    
 * To set it up:
     1. Execute the plan a first time:    
     ```.\tfplan.ps1 -PlanTfPath .\1-hub\1-terraform\ -ValuesTfPath ..\subscriptions\demo\1-hub\1-terraform\```,

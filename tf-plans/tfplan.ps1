@@ -31,9 +31,9 @@
 # Folder/File   : /tf-plans/tfplan.ps1
 # Created on    : 2020-07-04
 # Created by    : Emmanuel
-# Last Modified : 2020-10-10
+# Last Modified : 2020-11-20
 # Last Modif by : Emmanuel
-# Modif scope   : Improved script, Fixed variables cascading logic.
+# Modif scope   : Switched to Variables manifest to remove variables declarations duplicates
 
 #--------------------------------------------------------------
 #   Script parameters inputs
