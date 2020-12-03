@@ -156,7 +156,7 @@ To apply changes, type ```yes``` and hit enter.
     * Once all the JSON files for the required variables have been found, the values are processed in reverse order of their discovery: It ensures that the values set the closest to the instance will be the ones applied.
     * It is allows to override some defaults values specifically for in 1 instance deployment.
 * To ensure the processing of ***default values*** without declaring them in the Plan folder, an empty variable Terraform file can be created in the Plan folder. It ensures the default Values JSON file will be processed.    
-An example can be found with this file: ```\tf-plans\3-aks\2-cluster\variables_aks-defaults.tf``` it is empty, but it enables the values of this file to be processed: ```\subscriptions\nonprod\3-aks\nonprod_aks_aks-defaults_azure.json``` and become defaults. In this case, we also use this file: ```\subscriptions\nonprod\3-aks\nonprod_aks_aks-defaults_b.json``` which is processed after the ```_azure.json``` and overrides some of its values.
+An example can be found with this file: ```\tf-plans\3-aks\2-cluster\variables_aks-defaults.tf``` it is empty, but it enables the values of this file to be processed: ```\subscriptions\nonprod\3-aks\nonprod_aks_aks-defaults_azure.json``` to create "defaults". In this case, we added this file: ```\subscriptions\nonprod\3-aks\nonprod_aks_aks-defaults_b.json``` which is processed after the ```_azure.json``` and overrides the "defaults" to set some values at the "nonprod / AKS" level.
 
 # Q&A
 Why JSON for the values and not Terraform ```(auto.)tfvars.tf```?
