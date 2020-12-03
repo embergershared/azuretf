@@ -1,0 +1,13 @@
+{
+  "default_np_name":                  "linp1",          // lowercase alphanumeric characters. linux: 12charmax, win: 6 charmax. https://docs.microsoft.com/en-us/azure/aks/use-multiple-node-pools
+  "default_np_vmsize":                "Standard_B2s",   // "Standard_B2ms" or "Standard_B4ms"
+  "default_np_type":                  "VirtualMachineScaleSets",
+  "default_np_enablenodepubip":       "false",
+  "network_plugin":                   "azure",
+  "network_policy":                   "calico",
+  "outbound_type":                    "loadBalancer",
+  "load_balancer_sku":                "Standard",       // To allow compatibility with the AKS Networking PIPs Helm capture from the AKS ALB
+  "load_balancer_managedOutboundIps": "1",
+  // k8s infra defaults
+  "deploy_ilb":                       "false"
+}

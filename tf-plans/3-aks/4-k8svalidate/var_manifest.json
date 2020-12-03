@@ -1,0 +1,8 @@
+[
+  "var_tfspn.tf",
+  "var_aks-cluster.tf",
+  "var_aks-defaults.tf",
+  "var_hub-netsharedsvc.tf",
+  "var_aks-k8sinfra.tf",
+  "var_aks-datasub.tf"
+]

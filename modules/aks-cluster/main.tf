@@ -185,6 +185,15 @@ resource azurerm_key_vault_access_policy cmk {
 #   AKS Cluster
 #--------------------------------------------------------------
 # Ref: https://docs.microsoft.com/en-us/cli/azure/aks?view=azure-cli-latest#az-aks-create
+locals {
+  availzones  = lookup({
+    1 = ["1"],
+    2 = ["1","2"],
+    3 = ["1","2","3"],
+    },
+    var.default_np_availzonescount, null)
+}
+
 resource azurerm_kubernetes_cluster aks_cluster {
   depends_on                  = [ tls_private_key.ssh_key ]
 
@@ -196,7 +205,7 @@ resource azurerm_kubernetes_cluster aks_cluster {
   node_resource_group         = "${azurerm_resource_group.aks_rg.name}-managed"
   enable_pod_security_policy  = var.enable_podsecurpol           # Needs the preview feature enabled: "Microsoft.ContainerService/PodSecurityPolicyPreview": az feature register --name PodSecurityPolicyPreview --namespace Microsoft.ContainerService
   private_cluster_enabled     = var.enable_privcluster
-  api_server_authorized_ip_ranges = var.authorized_ips == null ? null : [ var.authorized_ips ] # [ "45.44.243.251/32", ]
+  api_server_authorized_ip_ranges = var.authorized_ips == null ? null : [ var.authorized_ips ]
   disk_encryption_set_id      = azurerm_disk_encryption_set.cmk_des.id
 
   dynamic service_principal {
@@ -237,14 +246,14 @@ resource azurerm_kubernetes_cluster aks_cluster {
     type                  = var.default_np_type
     enable_node_public_ip = var.default_np_enablenodepubip
 
-    availability_zones    = var.default_np_availzones
+    availability_zones    = local.availzones   # https://docs.microsoft.com/en-us/azure/aks/availability-zones
 
     enable_auto_scaling   = var.default_np_enableautoscale
     node_count            = var.default_np_nodecount
     max_count             = var.default_np_max_count
     min_count             = var.default_np_min_count
 
-    max_pods              = var.default_np_maxpods    # The network used is azure (cni): 30 is default, max is 250 | kubenet: 110
+    max_pods              = var.default_np_maxpods          # The network used is azure (cni): 30 is default, max is 250 | kubenet: 110
 
     #tags = local.module_tags
   }

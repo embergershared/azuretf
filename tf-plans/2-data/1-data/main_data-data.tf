@@ -176,7 +176,7 @@ resource azurerm_storage_account data_azfiles_st {
 resource azurerm_storage_share aks_azfile {
   for_each              = var.aks_st_file_shares
 
-  name                  = "${each.value}-azvolume"
+  name                  = each.value
   storage_account_name  = azurerm_storage_account.data_azfiles_st.name
   quota                 = 1  #in GiB
 }

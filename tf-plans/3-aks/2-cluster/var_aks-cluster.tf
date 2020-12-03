@@ -36,6 +36,7 @@ variable default_np_type            {}
 variable default_np_enablenodepubip {}
 variable default_np_osdisksize      {}
 variable default_np_enableautoscale {}
+variable default_np_availzonescount { description = "check result: kubectl describe nodes | grep -e \"Name:\" -e \"failure-domain.beta.kubernetes.io/zone\"" }
 variable default_np_nodecount       {}
 variable default_np_maxpods         {}
 

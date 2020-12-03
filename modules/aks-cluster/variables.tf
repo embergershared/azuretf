@@ -40,12 +40,12 @@ variable default_np_vmsize            {}     # Standard_B2s
 variable default_np_type              {}     # VirtualMachineScaleSets
 variable default_np_enablenodepubip   {}     # false
 variable default_np_osdisksize        {}     # Minimum 30GB
-variable default_np_availzones        { default = null }
+variable default_np_availzonescount   {}
 variable default_np_enableautoscale   { type = bool }     # false
 variable default_np_nodecount         {}     # 3
 variable default_np_maxpods           {}     # kubenet=> max 110 | azure/cni=> max 250, default 30
-variable default_np_max_count         { default = null }
-variable default_np_min_count         { default = null }
+variable default_np_max_count         { default = null }  # Range: 1 - 100 or null
+variable default_np_min_count         { default = null }  # Range: 1 - 100 or null
 
 #   / Networking profile 
 variable network_plugin               {}     # Enum: kubenet | azure

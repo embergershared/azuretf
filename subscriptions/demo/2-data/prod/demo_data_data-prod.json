@@ -1,6 +1,0 @@
-{
-  "data_location":      "canadacentral",
-  "data_env":           "prod",
-  "rotate_sql_secret":  "false",
-  "sql_dbs"         :   "[ \"db1\", \"db2\", ]"
-}

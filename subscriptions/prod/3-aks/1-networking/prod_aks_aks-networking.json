@@ -1,0 +1,9 @@
+{
+  "atfmgr_level1_dns":    "",
+  "pip_sku":              "", // Basic for PIP & ALB creates issues in nginx Helm chart deployment
+  "pip_alloc_method":     "", // If not static, AKS nginx can't associate with the PIP
+  "aksnet_location1":     "canadacentral",
+  "aksnet_location2":     "canadaeast",
+  "piping1_name":         "",
+  "piping2_name":         ""
+}

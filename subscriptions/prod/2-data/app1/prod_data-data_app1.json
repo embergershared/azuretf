@@ -1,0 +1,6 @@
+{
+  "data_location":      "canadacentral",
+  "data_env":           "app1",
+  "rotate_sql_secret":  "false",
+  "sql_dbs"         :   "[ \"db1\", \"db2\", ]"
+}

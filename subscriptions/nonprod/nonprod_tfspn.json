@@ -1,0 +1,9 @@
+{
+  "tenant_id":        "",
+  "subscription_id":  "",
+  "tf_app_id":        "",
+  "subs_nickname":    "nonprod",
+  "subs_adm_short":   "emmanuel",
+  "main_location":    "canadacentral",
+  "can_create_azure_servprincipals": "false"
+}

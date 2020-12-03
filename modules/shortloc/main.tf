@@ -18,11 +18,20 @@
 #--------------------------------------------------------------
 locals {
   name = lower(var.location)
+
   # Short Location codes
   short_location  = lookup({
     canadacentral   = "cac",
     canadaeast      = "cae",
     eastus          = "use",
+    },
+    local.name, "")
+
+  # Short Location codes
+  long_location  = lookup({
+    canadacentral   = "Canada Central",
+    canadaeast      = "Canada East",
+    eastus          = "US East",
     },
     local.name, "")
 }

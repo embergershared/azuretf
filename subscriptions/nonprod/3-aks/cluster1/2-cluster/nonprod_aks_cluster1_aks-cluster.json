@@ -1,0 +1,6 @@
+{
+  "cluster_name":           "Cluster1",
+  "cluster_location":       "canadacentral",
+  "aks_vnet_cidr":          "ABCD/20",
+  "k8s_version":            "1.19.3"
+}
