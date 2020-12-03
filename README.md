@@ -175,16 +175,17 @@ Why use 1 ```main_*.tf``` and multiple ```variables_*.tf``` files?
 > The multiple variables files allows to see right away which variables are needed for a plan. It eases the use of Variable Groups in Azure DevOps.    
 > The use of 1 main Terraform files (instead of splitted main.tf for the Plan), allows IntelliSense in the IDE to **reference** and debug more easily resources while building the plan.
 
-What are the ```tf-plans```, ```modules``` and ```subscriptions``` folders for?
+What are the ```tf-plans```, ```modules```, ```charts``` and ```subscriptions``` folders for?
 > They are real life sanitized examples of an Azure infrastructure deployed with Terraform. Execute the folders following their number sequence and fill in the values adapted for your deployment. 
-> * tf-plans: contains the Terraform plans with main.tf and variables.tf
-  * modules: contains few Terraform modules (reusable grouping of resources)
-  * subscriptions: contains 2 example subscriptions with empty values to create instances
+> * ```tf-plans```: contains the Terraform plans with main.tf and variables.tf
+> * ```modules```: contains few Terraform modules (reusable grouping of resources)
+> * ```charts```: contains few Helm charts I built and use to deploy on Kubernetes clusters
+> * ```subscriptions```: contains 2 example subscriptions with empty values to create instances
 
 Why not use ```map(object)``` variable types and iterate to create mulitple instances?
 > This approach is used in my current project. It presents 2 main issues:    
-  1. These values cannot be parsed into environment variables. It forces the use of ```(auto.)tfvars.tf``` files,
-  2. If an element is removed of the iteration, Terraform will reorder the keys and Destroy/Recreate the entire array of resources. It ended up deleting Prod resources ... to recreate them identically, just because the key in Terraform dictionary "looked" different (Terraform uses an index, not the keyname).
+> 1. These values cannot be parsed into environment variables. It forces the use of ```(auto.)tfvars.tf``` files,
+> 2. If an element is removed of the iteration, Terraform will reorder the keys and Destroy/Recreate the entire array of resources. It ended up deleting Prod resources ... to recreate them identically, just because the key in Terraform dictionary "looked" different (Terraform uses an index, not the keyname).
   It is safer to create x resources or modules instances when x intances are required.
 
 **Note**: All elements are not provided. Some specifics in the deployments may not work and will need your adjustment. For instance, the secrets used in the AKS cluster are pulled through [akv2k8s](https://akv2k8s.io/) from another subscription. **Good news**: Terraform will complain when it doesn't have everything it needs to execute a Plan.
