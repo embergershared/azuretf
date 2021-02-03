@@ -3,6 +3,8 @@ This repository shares the code created from various contexts to deploy [Azure](
 
 This repo is provided as is, with no support or warranty, but this code is used in real scenarios for real customers/workloads, within their contexts.
 
+This is a new picture file.
+
 # Infrastructure as Code
 ## Challenges
 Using IaC (Infrastructure as Code) based on Terraform for more than 2 years, I met 4 challenges I address here:
