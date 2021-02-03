@@ -1,7 +1,7 @@
 # Azure with Terraform
 This repository shares the code created from various contexts to deploy [Azure](https://azure.microsoft.com/) resources and infrastructures using (HashiCorp) [Terraform](https://www.terraform.io/).
 
-It is provided as is, with no support or warranty, but this code is used in real scenarios for real customers/workloads, within their contexts.
+This repo is provided as is, with no support or warranty, but this code is used in real scenarios for real customers/workloads, within their contexts.
 
 # Infrastructure as Code
 ## Challenges
