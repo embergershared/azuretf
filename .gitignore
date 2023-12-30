@@ -1,9 +1,17 @@
-# Local .terraform directories
+##########   Emmanuel's additions   ##########
+#  Local .terraform directories
 **/.terraform/*
 
 # .tfstate files
 *.tfstate
 *.tfstate.*
+
+# .tfvars secret files
+*secret*.*tfvars*
+
+# .json secret files
+*secret*.json
+##########   End of additions       ##########
 
 # Crash log files
 crash.log
