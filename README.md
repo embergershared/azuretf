@@ -1,12 +1,17 @@
 # Azure with Terraform
+
 This repository shares the code created from various contexts to deploy [Azure](https://azure.microsoft.com/) resources and infrastructures using (HashiCorp) [Terraform](https://www.terraform.io/).
 
 This repo is provided as is, with no support or warranty, but this code is used in real scenarios for real customers/workloads, within their contexts.
 
-# Infrastructure as Code
-## Challenges
+## Infrastructure as Code
+
+### Challenges
+
 Using IaC (Infrastructure as Code) based on Terraform for more than 2 years, I met 4 challenges I address here:
+
 1. **Start locally, but be ready for Pipelines** deployment later, as easily as possible,
+
 2. **Separate completely the Infrastructure Plans from their Instances' Values** (including defaults, and instances' Terraform backend state persistence),
 3. **Set a Variable's value once** for all the instances needing it (never duplicate, never copy/paste values, never store the same value in mutiple places),
 4. Acknowledge that **deployments happen in steps & layers** and code accordingly:
@@ -21,9 +26,11 @@ Using IaC (Infrastructure as Code) based on Terraform for more than 2 years, I m
 With time, these challenges grew, whichever tools were used in the projects (Jenkins, Azure DevOps, bash and PowerShell scripts, Terraform local, Terraform Cloud, Terraform Enterprise).    
 I came to this solution to be a very solid foundation for all cases and evolution scenarios.
 
-## Offered solution
+### Offered solution
+
 To solve these challenges, I created a PowerShell script, and a structured folders organization.    
 The script does these main things:
+
 1. Merges all the Terraform Plan files ```*.tf``` (common, main and variable) into the instance Value folder (with a "srcd-" prefix),
 2. Searches for the Variables Terraform declaration files in the Plan folder structure, parsing the ```var_manifest.json```, and adding them into the instance Value folder,
 3. Searches for the required Variables' values in ```*.json``` files within the Value folder structure:
@@ -33,8 +40,10 @@ The script does these main things:
 5. Runs the Terraform command (default is "Apply") in the Value folder,
 6. Cleans everything after execution.
 
-## Benefits
+### Benefits
+
 This solution addresses the challenges described above in these ways:
+
 * The Plans do not have any data or values (not even default ones) in them:    
 They are managed independently from the instances that are deployed from them.    
 They mainly consist of:
@@ -53,18 +62,20 @@ They mainly consist of:
 * The ***Terraform backend*** settings to store the state of the infrastructure instance are set in a ```*_tfstate_*.tf``` file located in the Values folder. This is because each state is unique to its instance. The script merging all the required ```*.tf``` files in the Values folder before execution, creates the consistency of the full instance.    
 Additionnally, the Terraform backend settings having to be hard-coded, they cannot reference variables. So, managing them as Values makes a lot of sense. In a Pipeline, these are usually filled by a "token replacement" task. 
 
-# Usage
-## General
+## Usage
+
+### General
+
 The general use is simple:
 * on a Windows machine with PowerShell and Terraform (>= 0.12),
 * Launch PowerShell,
-* Go (```cd``` or ```Set-Location```) in the folder where the script file ```tfplan.ps1``` is (in this repo: ```/tf-plans```)
+* Go (```cd``` or ```Set-Location```) in the folder where the script file ```tfplan.ps1``` is (in this repo: ```/src/tf-plans```)
 
 Execute the script with the Plan and Values folders as parameters:    
 ```.\tfplan.ps1 -PlanTfPath .\1-hub\3-netsharedsvc\ -ValuesTfPath ..\subscriptions\nonprod\1-hub\3-netsharedsvc\```
 
 A typical output will look like this:
-```
+```bash
 ===================================================================================================
 >>> Started tfplan.ps1 script.
 Parameters    : Command="AutoApply", Plan=".\1-hub\5-jumpboxes\", Values="..\subscriptions\nonprod\1-hub\5-jumpboxes\"
@@ -89,7 +100,8 @@ Deleted 5 "srcd-" files from Values Path.
 ===================================================================================================
 ```
 
-## Parameters
+### Parameters
+
 | Parameter | Description | Mandatory |
 |-----------|-------------|-----------|
 | ```-PlanTfPath``` | Used to give the argument of the Terraform Plan path | Yes |
@@ -105,8 +117,10 @@ Deleted 5 "srcd-" files from Values Path.
 
 Note: Except for the ```-b``` & ```-h``` argument, all other arguments will clean the Values folder and Environment variables created.
 
-## Get started
+### Get started
+
 To get started with the provided plans:
+
 1. Create an Azure Service Principal (Portal, azure CLI, azure PowerShell, etc.) that Terraform will use to create and manage Azure resources,
 2. Note the following data: *TenantId*, *SubscriptionId*, *AppId*, *AppSecret*,
 3. Give this Service Principal the appropriate permissions (usually Contributor on a subscription),
@@ -129,8 +143,8 @@ To get started with the provided plans:
     7. Answer ```yes``` to move the state from local to the Azure remote backend,
 * You're all set.
 
+### Comments
 
-## Comments
 * By default, the script launches a ```terraform apply```. It saves time from the sequence ```terraform plan``` then ```terraform apply```, and maintain execution consistency.    
 To discard changes, just hit enter at prompt.    
 To apply changes, type ```yes``` and hit enter.    
@@ -144,7 +158,8 @@ To apply changes, type ```yes``` and hit enter.
   * Inject secrets from a Vault,
   * Synchronize some tags and tokens values automatically,
 
-## Conventions
+### Conventions
+
 * The JSON file with the values for a set of variables must have the same name pattern:
     * the values for ```variables_tfspn.tf``` must be in a JSON file named by this pattern: ```*tfspn*.json```,
     * the values can be split in multiples files, like ```tfspn.json``` and ```tfspn_secret.json``` to prevent secrets commit in the repo,
@@ -158,7 +173,8 @@ To apply changes, type ```yes``` and hit enter.
 * To ensure the processing of ***default values*** without declaring them in the Plan folder, an empty variable Terraform file can be created in the Plan folder. It ensures the default Values JSON file will be processed.    
 An example can be found with this file: ```\tf-plans\3-aks\2-cluster\variables_aks-defaults.tf``` it is empty, but it enables the values of this file to be processed: ```\subscriptions\nonprod\3-aks\nonprod_aks_aks-defaults_azure.json``` to create "defaults". In this case, we added this file: ```\subscriptions\nonprod\3-aks\nonprod_aks_aks-defaults_b.json``` which is processed after the ```_azure.json``` and overrides the "defaults" to set some values at the "nonprod / AKS" level.
 
-# Q&A
+## Q&A
+
 Why JSON for the values and not Terraform ```(auto.)tfvars.tf```?
 > JSON is system independent and can easily be manipulated by PowerShell, bash (or other shells) and CD Pipelines. Using JSON helps to be ready for Pipelines transition and not confuse "Plans" items (in ```*.tf``` files) from values (which are in ```*.json``` files).    
 
